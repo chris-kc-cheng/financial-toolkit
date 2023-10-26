@@ -14,7 +14,7 @@ class TestFunctional(unittest.TestCase):
     def test_add(self):
         """_summary_
         """
-        self.assertEqual(ftk.add(1, 2), 3)
+        self.assertEqual(ftk.add(1, 2), 4)
 
 if __name__ == '__main__':
     unittest.main()
