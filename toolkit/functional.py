@@ -8,6 +8,9 @@ PERIODICITY = {
     'Q': 4,
 }
 
+def hello(num):
+    return f'hello {num}'
+
 def compound_return(s: pd.Series, annualize=False) -> float:
     """_summary_
 
