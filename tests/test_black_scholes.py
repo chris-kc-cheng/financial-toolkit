@@ -21,10 +21,10 @@ class TestGreeks(unittest.TestCase):
         self.assertAlmostEqual(ftk.gamma(50, 49, 0.05, 0.3846, 0.2, 0), 0.066, 3)
 
     def test_vega(self):
-        self.assertAlmostEqual(ftk.vega(50, 49, 0.05, 0.3846, 0.2, 0), 0.121, 1)
+        self.assertAlmostEqual(ftk.vega(50, 49, 0.05, 0.3846, 0.2, 0), 0.121, 3)
 
     def test_rho(self):
-        pass
+        self.assertAlmostEqual(ftk.rho(True, 50, 49, 0.05, 0.3846, 0.2, 0), 8.91, 2)
     
     def test_put_call_parity(self):
         value = 49

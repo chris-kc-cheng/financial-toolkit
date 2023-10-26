@@ -5,4 +5,5 @@ statsmodels
 matplotlib
 scikit-learn
 yfinance
+ipywidgets
 streamlit

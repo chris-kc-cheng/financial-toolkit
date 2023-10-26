@@ -32,5 +32,6 @@ def theta(iscall, strike, spot, rate, time, vol, dvd):
            - sign * rate * strike * np.exp(-rate * time) * stats.norm.cdf(sign * d2(strike, spot, rate, time, vol, dvd))\
            + sign * dvd * spot * np.exp(-dvd * time) * stats.norm.cdf(sign * d1(strike, spot, rate, time, vol, dvd))
 
-def rho():
-    pass
+def rho(iscall, strike, spot, rate, time, vol, dvd):
+    sign = 1 if iscall else -1
+    return sign * strike * time * np.exp(-rate * time) * stats.norm.cdf(sign * d2(strike, spot, rate, time, vol, dvd))
