@@ -10,14 +10,19 @@ def d1(strike, spot, rate, time, vol, dvd):
 def d2(strike, spot, rate, time, vol, dvd):
     return d1(strike, spot, rate, time, vol, dvd) - vol * np.sqrt(time)
 
-def value(iscall, strike, spot, rate, time, vol, dvd):
-    sign = 1 if iscall else -1
-    return sign * spot * np.exp(-dvd * time) * stats.norm.cdf(sign * d1(strike, spot, rate, time, vol, dvd))\
-           - sign * strike * np.exp(-rate * time) * stats.norm.cdf(sign * d2(strike, spot, rate, time, vol, dvd))
+def price_call(strike, spot, rate, time, vol, dvd):
+    return spot * np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))\
+           - strike * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
 
-def delta(iscall, strike, spot, rate, time, vol, dvd):
-    sign = 1 if iscall else -1
-    return sign * np.exp(-dvd * time) * stats.norm.cdf(sign * d1(strike, spot, rate, time, vol, dvd))
+def price_put(strike, spot, rate, time, vol, dvd):
+    return strike * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))\
+        - spot * np.exp(-dvd * time) * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
+
+def delta_call(strike, spot, rate, time, vol, dvd):
+    return np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))
+
+def delta_put(strike, spot, rate, time, vol, dvd):
+    return delta_call(strike, spot, rate, time, vol, dvd) - 1
 
 # Scaled to 1%
 def vega(strike, spot, rate, time, vol, dvd):
@@ -26,12 +31,18 @@ def vega(strike, spot, rate, time, vol, dvd):
 def gamma(strike, spot, rate, time, vol, dvd):
     return np.exp(-dvd * time) * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) / spot / (vol * np.sqrt(time))
 
-def theta(iscall, strike, spot, rate, time, vol, dvd):
-    sign = 1 if iscall else -1
+def theta_call(strike, spot, rate, time, vol, dvd):
     return np.exp(-dvd * time) * -spot * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * vol / 2 / np.sqrt(time)\
-           - sign * rate * strike * np.exp(-rate * time) * stats.norm.cdf(sign * d2(strike, spot, rate, time, vol, dvd))\
-           + sign * dvd * spot * np.exp(-dvd * time) * stats.norm.cdf(sign * d1(strike, spot, rate, time, vol, dvd))
+           - rate * strike * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))\
+           + dvd * spot * np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))
 
-def rho(iscall, strike, spot, rate, time, vol, dvd):
-    sign = 1 if iscall else -1
-    return sign * strike * time * np.exp(-rate * time) * stats.norm.cdf(sign * d2(strike, spot, rate, time, vol, dvd))
+def theta_put(strike, spot, rate, time, vol, dvd):
+    return np.exp(-dvd * time) * -spot * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * vol / 2 / np.sqrt(time)\
+           + rate * strike * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))\
+           - dvd * spot * np.exp(-dvd * time) * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
+
+def rho_call(strike, spot, rate, time, vol, dvd):
+    return strike * time * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
+
+def rho_put(strike, spot, rate, time, vol, dvd):
+    return -strike * time * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))
