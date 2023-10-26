@@ -1,9 +1,14 @@
 """_summary_
 """
+import os
 import sys
 import streamlit as st
-#from . import toolkit as ftk
 
+current = os.path.dirname(os.path.realpath(__file__))
+parent = os.path.dirname(current)
+if parent not in sys.path:
+    sys.path.append(parent)
+import toolkit as ftk
 
 st.title('🌞')
 st.slider('Slider')
