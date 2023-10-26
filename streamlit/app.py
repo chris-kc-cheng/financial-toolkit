@@ -1,6 +1,11 @@
+"""_summary_
+"""
+import sys
 import streamlit as st
-import toolkit as ftk
+#from . import toolkit as ftk
+
 
 st.title('🌞')
 st.slider('Slider')
-st.write(ftk.add(1, 2))
+st.write(sys.path)
+#st.write(ftk.compound_return(None))

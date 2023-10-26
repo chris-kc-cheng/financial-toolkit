@@ -1,8 +1,7 @@
-"""_summary_
-"""
 
 import unittest
-from toolkit import functional as ftk
+import pandas as pd
+import toolkit as ftk
 
 class TestFunctional(unittest.TestCase):
     """_summary_
@@ -11,10 +10,10 @@ class TestFunctional(unittest.TestCase):
         unittest (_type_): _description_
     """
 
-    def test_add(self):
+    def test_compound_return(self):
         """_summary_
         """
-        self.assertEqual(ftk.add(1, 2), 4)
+        self.assertEqual(ftk.compound_return(pd.Series()), 123)
 
 if __name__ == '__main__':
     unittest.main()
