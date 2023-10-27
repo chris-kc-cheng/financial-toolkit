@@ -23,7 +23,7 @@ class Derivative(Instrument):
         return self.underlying
 
 class Option(Derivative):
-    def __init__(self, underlying: Instrument, strike: float = 1, name: str = None):
+    def __init__(self, underlying: Instrument, strike: float, name: str = None):
         self.underlying = underlying
         self.strike = strike
         super().__init__(name)
@@ -34,6 +34,10 @@ class Option(Derivative):
                 'Vega' : self.vega (spot, rate, time, vol, dvd),
                 'Theta': self.theta(spot, rate, time, vol, dvd),
                 'Rho'  : self.rho  (spot, rate, time, vol, dvd)}
+    
+    @abstractmethod
+    def price(self, spot, rate, time, vol, dvd):
+        pass
 
     @abstractmethod
     def delta(self, spot, rate, time, vol, dvd):
@@ -43,6 +47,13 @@ class Option(Derivative):
     def gamma(self, spot, rate, time, vol, dvd):
         pass
 
+    @abstractmethod
+    def theta(self, spot, rate, time, vol, dvd):
+        pass
+
+    @abstractmethod
+    def rho(self, spot, rate, time, vol, dvd):
+        pass
 
 class EuropeanOption(Option):
     def vega(self, spot, rate, time, vol, dvd):
@@ -55,16 +66,24 @@ class AmericanOption(Option):
     pass
 
 class EuropeanCall(EuropeanOption):
+
+    def price(self, spot, rate, time, vol, dvd):
+        return ftk.price_call(self.strike, spot, rate, time, vol, dvd)
+
     def delta(self, spot, rate, time, vol, dvd):
         return ftk.delta_call(self.strike, spot, rate, time, vol, dvd)
 
     def theta(self, spot, rate, time, vol, dvd):
-        return ftk.delta_call(self.strike, spot, rate, time, vol, dvd)
+        return ftk.theta_call(self.strike, spot, rate, time, vol, dvd)
 
     def rho(self, spot, rate, time, vol, dvd):
-        return ftk.delta_call(self.strike, spot, rate, time, vol, dvd)
+        return ftk.rho_call(self.strike, spot, rate, time, vol, dvd)
 
 class EuropeanPut(EuropeanOption):
+
+    def price(self, spot, rate, time, vol, dvd):
+        return ftk.price_put(self.strike, spot, rate, time, vol, dvd)
+    
     def delta(self, spot, rate, time, vol, dvd):
         return ftk.delta_put(self.strike, spot, rate, time, vol, dvd)
     

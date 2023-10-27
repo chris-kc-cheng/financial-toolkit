@@ -34,6 +34,8 @@ def vega(strike, spot, rate, time, vol, dvd):
 def gamma(strike, spot, rate, time, vol, dvd):
     return np.exp(-dvd * time) * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) / spot / (vol * np.sqrt(time))
 
+
+# Also scale theta and rho ???
 def theta_call(strike, spot, rate, time, vol, dvd):
     return np.exp(-dvd * time) * -spot * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * vol / 2 / np.sqrt(time)\
            - rate * strike * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))\
