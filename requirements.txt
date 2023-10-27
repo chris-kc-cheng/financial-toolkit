@@ -7,3 +7,4 @@ scikit-learn
 yfinance
 ipywidgets
 streamlit
+altair<5

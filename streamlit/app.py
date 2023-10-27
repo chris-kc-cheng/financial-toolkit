@@ -14,6 +14,13 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import toolkit as ftk
 
+def bound(num):
+    if abs(num) > 1e8:
+        return 'Unlimited'
+    else:
+        return f'num:.2f'
+
+
 strategy = 'Custom Option Strategy'
 strategies = json.load(open('streamlit/data/option_strategy.json'))
 
@@ -58,8 +65,8 @@ gamma = []
 vega  = []
 theta = []
 
-pnls = np.zeros_like(strikes) # Calculate max payoff
-prem = 0
+payoffs = np.zeros_like(strikes)
+premium = 0
 cost = 0
 
 for _, row in edited_df.iterrows():
@@ -74,6 +81,8 @@ for _, row in edited_df.iterrows():
             gamma.append(pd.Series(qty * c.gamma(spot, rate, time, vol, dvd), name=row['name']))
             vega .append(pd.Series(qty * c.vega (spot, rate, time, vol, dvd), name=row['name']))
             theta.append(pd.Series(qty * c.theta(spot, rate, time, vol, dvd), name=row['name']))
+            premium += qty * c.price(spot, rate, time, vol, dvd)
+            payoffs += qty * c.moneyness(spot)
         elif row.instrument == 'Put':
             p = ftk.EuropeanPut(None, row.strike)
             value.append(pd.Series(qty * p.price(spot, rate, time, vol, dvd), name=row['name']))
@@ -81,10 +90,13 @@ for _, row in edited_df.iterrows():
             gamma.append(pd.Series(qty * p.gamma(spot, rate, time, vol, dvd), name=row['name']))
             vega .append(pd.Series(qty * p.vega (spot, rate, time, vol, dvd), name=row['name']))
             theta.append(pd.Series(qty * p.theta(spot, rate, time, vol, dvd), name=row['name']))
+            premium += qty * p.price(spot, rate, time, vol, dvd)
+            payoffs += qty * p.moneyness(spot)
         elif row.instrument == 'Stock':
             value.append(pd.Series(qty * spot * np.exp(-dvd * time), name=row['name']))
             delta.append(pd.Series(qty * np.ones_like(spot) * np.exp(-dvd * time), name=row['name']))
             theta.append(pd.Series(qty * dvd * spot * np.exp(-dvd * time), name=row['name']))
+            payoffs += qty * spot
         elif row.instrument == 'Debt':
             value.append(pd.Series(qty * np.ones_like(spot) * row.strike * np.exp(-rate * time), name=row['name']))                
             theta.append(pd.Series(qty * np.ones_like(spot) * rate * row.strike * np.exp(-rate * time), name=row['name']))
@@ -99,6 +111,11 @@ vega_df = pd.DataFrame(vega).T
 vega_df[strategy] = vega_df.sum(axis=1)
 theta_df = pd.DataFrame(theta).T
 theta_df[strategy] = theta_df.sum(axis=1)
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Premium Paid", f'{premium:.2f}')
+col2.metric("Maximum Gain", bound(payoffs.max()))
+col3.metric("Maximum Loss", bound(payoffs.min()))
 
 st.header('Price')
 st.line_chart(value_df)
