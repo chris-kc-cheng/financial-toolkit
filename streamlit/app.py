@@ -65,28 +65,29 @@ cost = 0
 for _, row in edited_df.iterrows():
     if row.instrument:
         qty = row.qty
-        match row.instrument:
-            case 'Call':
-                c = ftk.EuropeanCall(None, row.strike)
-                value.append(pd.Series(qty * c.price(spot, rate, time, vol, dvd), name=row['name']))
-                delta.append(pd.Series(qty * c.delta(spot, rate, time, vol, dvd), name=row['name']))
-                gamma.append(pd.Series(qty * c.gamma(spot, rate, time, vol, dvd), name=row['name']))
-                vega .append(pd.Series(qty * c.vega (spot, rate, time, vol, dvd), name=row['name']))
-                theta.append(pd.Series(qty * c.theta(spot, rate, time, vol, dvd), name=row['name']))
-            case 'Put':
-                p = ftk.EuropeanPut(None, row.strike)
-                value.append(pd.Series(qty * p.price(spot, rate, time, vol, dvd), name=row['name']))
-                delta.append(pd.Series(qty * p.delta(spot, rate, time, vol, dvd), name=row['name']))
-                gamma.append(pd.Series(qty * p.gamma(spot, rate, time, vol, dvd), name=row['name']))
-                vega .append(pd.Series(qty * p.vega (spot, rate, time, vol, dvd), name=row['name']))
-                theta.append(pd.Series(qty * p.theta(spot, rate, time, vol, dvd), name=row['name']))
-            case 'Stock':
-                value.append(pd.Series(qty * spot * np.exp(-dvd * time), name=row['name']))
-                delta.append(pd.Series(qty * np.ones_like(spot) * np.exp(-dvd * time), name=row['name']))
-                theta.append(pd.Series(qty * dvd * spot * np.exp(-dvd * time), name=row['name']))
-            case 'Debt':
-                value.append(pd.Series(qty * np.ones_like(spot) * row.strike * np.exp(-rate * time), name=row['name']))                
-                theta.append(pd.Series(qty * np.ones_like(spot) * rate * row.strike * np.exp(-rate * time), name=row['name']))
+
+        # Use nested if-else as Streamlit use Python 3.9 while match/case was introduced in Python 3.10
+        if row.instrument == 'Call':
+            c = ftk.EuropeanCall(None, row.strike)
+            value.append(pd.Series(qty * c.price(spot, rate, time, vol, dvd), name=row['name']))
+            delta.append(pd.Series(qty * c.delta(spot, rate, time, vol, dvd), name=row['name']))
+            gamma.append(pd.Series(qty * c.gamma(spot, rate, time, vol, dvd), name=row['name']))
+            vega .append(pd.Series(qty * c.vega (spot, rate, time, vol, dvd), name=row['name']))
+            theta.append(pd.Series(qty * c.theta(spot, rate, time, vol, dvd), name=row['name']))
+        elif row.instrument == 'Put':
+            p = ftk.EuropeanPut(None, row.strike)
+            value.append(pd.Series(qty * p.price(spot, rate, time, vol, dvd), name=row['name']))
+            delta.append(pd.Series(qty * p.delta(spot, rate, time, vol, dvd), name=row['name']))
+            gamma.append(pd.Series(qty * p.gamma(spot, rate, time, vol, dvd), name=row['name']))
+            vega .append(pd.Series(qty * p.vega (spot, rate, time, vol, dvd), name=row['name']))
+            theta.append(pd.Series(qty * p.theta(spot, rate, time, vol, dvd), name=row['name']))
+        elif row.instrument == 'Stock':
+            value.append(pd.Series(qty * spot * np.exp(-dvd * time), name=row['name']))
+            delta.append(pd.Series(qty * np.ones_like(spot) * np.exp(-dvd * time), name=row['name']))
+            theta.append(pd.Series(qty * dvd * spot * np.exp(-dvd * time), name=row['name']))
+        elif row.instrument == 'Debt':
+            value.append(pd.Series(qty * np.ones_like(spot) * row.strike * np.exp(-rate * time), name=row['name']))                
+            theta.append(pd.Series(qty * np.ones_like(spot) * rate * row.strike * np.exp(-rate * time), name=row['name']))
 
 value_df = pd.DataFrame(value).T
 value_df[strategy] = value_df.sum(axis=1)
