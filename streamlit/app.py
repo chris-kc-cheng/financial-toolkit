@@ -49,7 +49,7 @@ edited_df = st.data_editor(st.session_state.data,
                            use_container_width=True,
                            hide_index=True,)
 
-strikes = pd.concat([edited_df['strike'], pd.Series([0, 1e10])])
+strikes = pd.concat([edited_df['strike'], pd.Series([1e-10, 1e10])])
 
 spot  = np.linspace(0, 100, 100)
 value = []
