@@ -15,7 +15,7 @@ import streamlit as st
 import toolkit as ftk
 
 strategy = 'Custom Option Strategy'
-strategies = json.load(open('data/option_strategy.json'))
+strategies = json.load(open('streamlit/data/option_strategy.json'))
 
 if 'data' not in st.session_state:
     st.session_state.data = pd.DataFrame(strategies[0])
