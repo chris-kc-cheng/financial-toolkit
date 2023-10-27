@@ -25,7 +25,7 @@ def delta_call(strike, spot, rate, time, vol, dvd):
     return np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))
 
 def delta_put(strike, spot, rate, time, vol, dvd):
-    return delta_call(strike, spot, rate, time, vol, dvd) - 1
+    return -np.exp(-dvd * time) * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
 
 def vega(strike, spot, rate, time, vol, dvd):
     return spot * np.exp(-dvd * time) * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * np.sqrt(time)

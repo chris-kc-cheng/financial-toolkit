@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 import toolkit as ftk
 
 class TestGreeks(unittest.TestCase):
@@ -30,9 +31,35 @@ class TestGreeks(unittest.TestCase):
         self.assertAlmostEqual(ftk.rho_call(50, 49, 0.05, 0.3846, 0.2, 0), 8.91, 2)
         self.assertAlmostEqual(ftk.rho_put(60, 65, 0.05, 0.5, 0.2, 0), -7.34, 2)
     
-    def test_put_call_parity(self):
+    def test_put_call_parity_price(self):
         value = 49
         value -= ftk.price_call(50, 49, 0.05, 0.3846, 0.2, 0)
         value += ftk.price_put(50, 49, 0.05, 0.3846, 0.2, 0)
         value -= ftk.bp(50, 0.05, 0.3846)
         self.assertAlmostEqual(value, 0)
+
+    def test_put_call_parity_price_vector(self):
+        spot = np.linspace(0, 100, 11)        
+        
+        value = spot * np.exp(-0.1 * 0.3846)
+        value -= ftk.price_call(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        value += ftk.price_put(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        value -= ftk.bp(50, 0.05, 0.3846)
+        np.testing.assert_allclose(value, 0, atol=1e-07)
+
+        delta = ftk.delta_put(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        delta -= ftk.delta_call(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        delta += np.exp(-0.1 * 0.3846)
+        np.testing.assert_allclose(delta, 0, atol=1e-07)
+
+        theta = ftk.theta_put(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        theta -= ftk.theta_call(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        theta += 0.1 * spot * np.exp(-0.1 * 0.3846)
+        theta -= 0.05 * 50 * np.exp(-0.05 * 0.3846) # Most like this line...
+        np.testing.assert_allclose(theta, 0, atol=1e-07)        
+
+        rho = ftk.rho_put(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        rho -= ftk.rho_call(50, spot, 0.05, 0.3846, 0.2, 0.1)
+        rho += 50 * 0.3846 * np.exp(-0.05 * 0.3846)
+        np.testing.assert_allclose(rho, 0, atol=1e-07)
+        

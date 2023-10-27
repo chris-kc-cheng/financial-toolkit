@@ -35,6 +35,10 @@ class Option(Derivative):
                 'Rho'  : self.rho  (spot, rate, time, vol, dvd)}
     
     @abstractmethod
+    def moneyness(self, spot):
+        pass
+
+    @abstractmethod
     def price(self, spot, rate, time, vol, dvd):
         pass
 
@@ -58,6 +62,17 @@ class Option(Derivative):
     def rho(self, spot, rate, time, vol, dvd):
         pass
 
+class CallOption(Option):
+    
+    def moneyness(self, spot):
+        return np.maximum(0, spot - self.strike)
+
+class PutOption(Option):
+
+    def moneyness(self, spot):
+        return np.maximum(0, self.strike - spot)
+
+
 class EuropeanOption(Option):
     def vega(self, spot, rate, time, vol, dvd):
         return ftk.vega(self.strike, spot, rate, time, vol, dvd)
@@ -68,7 +83,7 @@ class EuropeanOption(Option):
 class AmericanOption(Option):
     pass
 
-class EuropeanCall(EuropeanOption):
+class EuropeanCall(EuropeanOption, CallOption):
 
     def price(self, spot, rate, time, vol, dvd):
         return ftk.price_call(self.strike, spot, rate, time, vol, dvd)
@@ -82,7 +97,7 @@ class EuropeanCall(EuropeanOption):
     def rho(self, spot, rate, time, vol, dvd):
         return ftk.rho_call(self.strike, spot, rate, time, vol, dvd)
 
-class EuropeanPut(EuropeanOption):
+class EuropeanPut(EuropeanOption, PutOption):
 
     def price(self, spot, rate, time, vol, dvd):
         return ftk.price_put(self.strike, spot, rate, time, vol, dvd)
@@ -96,8 +111,8 @@ class EuropeanPut(EuropeanOption):
     def rho(self, spot, rate, time, vol, dvd):
         return ftk.rho_put(self.strike, spot, rate, time, vol, dvd)
 
-class AmericanCall(AmericanOption):
+class AmericanCall(AmericanOption, CallOption):
     pass
 
-class AmericanPut(AmericanOption):
+class AmericanPut(AmericanOption, PutOption):
     pass
