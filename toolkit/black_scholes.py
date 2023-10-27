@@ -4,6 +4,9 @@ from scipy import stats
 def bp(face, rate, time):
         return face * np.exp(-rate * time)
 
+# All functions share the same signature
+# Vectorized
+
 def d1(strike, spot, rate, time, vol, dvd):
     return (np.log(spot / strike) + (rate - dvd + vol ** 2 / 2) * time) / (vol * np.sqrt(time))
 

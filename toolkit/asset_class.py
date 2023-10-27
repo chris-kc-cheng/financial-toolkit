@@ -39,6 +39,11 @@ class Option(Derivative):
     def delta(self, spot, rate, time, vol, dvd):
         pass
 
+    @abstractmethod
+    def gamma(self, spot, rate, time, vol, dvd):
+        pass
+
+
 class EuropeanOption(Option):
     def vega(self, spot, rate, time, vol, dvd):
         return ftk.vega(self.strike, spot, rate, time, vol, dvd)
