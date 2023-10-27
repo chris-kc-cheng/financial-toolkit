@@ -10,7 +10,6 @@ class Instrument:
     def __repr__(self):
         return self.name
 
-
 class Equity(Instrument):
     pass
 
@@ -45,6 +44,10 @@ class Option(Derivative):
 
     @abstractmethod
     def gamma(self, spot, rate, time, vol, dvd):
+        pass
+
+    @abstractmethod
+    def vega(self, spot, rate, time, vol, dvd):
         pass
 
     @abstractmethod
