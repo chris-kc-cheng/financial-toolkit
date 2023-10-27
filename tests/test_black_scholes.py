@@ -18,17 +18,17 @@ class TestGreeks(unittest.TestCase):
         
     def test_theta(self):
         self.assertAlmostEqual(ftk.theta_call(50, 49, 0.05, 0.3846, 0.2, 0), -4.31, 2)
-        self.assertAlmostEqual(ftk.theta_put(60, 65, 0.05, 0.5, 0.2, 0), -0.0190 * 100, 2)
+        self.assertAlmostEqual(ftk.theta_put(60, 65, 0.05, 0.5, 0.2, 0), -1.90, 2)
         
     def test_gamma(self):
         self.assertAlmostEqual(ftk.gamma(50, 49, 0.05, 0.3846, 0.2, 0), 0.066, 3)
 
     def test_vega(self):
-        self.assertAlmostEqual(ftk.vega(50, 49, 0.05, 0.3846, 0.2, 0), 0.121, 3)
+        self.assertAlmostEqual(ftk.vega(50, 49, 0.05, 0.3846, 0.2, 0), 12.1, 1)
 
     def test_rho(self):
         self.assertAlmostEqual(ftk.rho_call(50, 49, 0.05, 0.3846, 0.2, 0), 8.91, 2)
-        self.assertAlmostEqual(ftk.rho_put(60, 65, 0.05, 0.5, 0.2, 0), -0.0734 * 100, 2)
+        self.assertAlmostEqual(ftk.rho_put(60, 65, 0.05, 0.5, 0.2, 0), -7.34, 2)
     
     def test_put_call_parity(self):
         value = 49
