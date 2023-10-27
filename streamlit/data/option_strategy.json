@@ -1,81 +1,267 @@
 [
-    {"name": "Covered Call",
-     "instruments": [
-         {"name": "Long Stock",
-          "instrument": "Stock",
-          "qty": 1},
-         {"name": "Short 60 Call",
-          "instrument": "Call",
-          "strike": 60,
-          "qty": -1}
-     ]},
-    {"name": "Protective Put",
-     "instruments": [
-         {"name": "Long Stock",
-          "instrument": "Stock",
-          "qty": 1},
-         {"name": "Long 40 Put",
-          "instrument": "Put",
-          "strike": 40,
-          "qty": 1}
-     ]},
-    {"name": "Bull Call Spread",
-     "instruments": [
-         {"name": "Long 40 Call",
-          "instrument": "Call",
-          "strike": 40,
-          "qty": 1},
-         {"name": "Short 60 Call",
-          "instrument": "Call",
-          "strike": 60,
-          "qty": -1}
-     ]},
-    {"name": "Bull Put Spread",
-     "instruments": [
-         {"name": "Long 40 Put",
-          "instrument": "Put",
-          "strike": 40,
-          "qty": 1},
-         {"name": "Short 60 Put",
-          "instrument": "Put",
-          "strike": 60,
-          "qty": -1}
-     ]},
-    {"name": "Box Spread",
-     "instruments": [
-         {"name": "Long ITM Call",
-          "instrument": "Call",
-          "strike": 40,
-          "qty": 1},
-         {"name": "Short OTM Call",
-          "instrument": "Call",
-          "strike": 60,
-          "qty": -1},
-         {"name": "Long ITM Put",
-          "instrument": "Put",
-          "strike": 60,
-          "qty": 1},
-         {"name": "Short OTM Putt",
-          "instrument": "Put",
-          "strike": 40,
-          "qty": -1}
-     ]},
-    {"name": "Put Call Parity",
-     "instruments": [
-         {"name": "Long Stock",
-          "instrument": "Stock",
-          "qty": 1},
-         {"name": "Long 50 Put",
-          "instrument": "Put",
-          "strike": 50,
-          "qty": 1},
-         {"name": "Short 50 Call",
-          "instrument": "Call",
-          "strike": 50,
-          "qty": -1},
-         {"name": "Short Risk-free asset",
-          "instrument": "Debt",
-          "strike": 50,
-          "qty": -1}
-     ]}
+    {
+        "name": "Covered Call",
+        "instruments": [
+            {
+                "name": "Long Stock",
+                "instrument": "Stock",
+                "qty": 1
+            },
+            {
+                "name": "Short 60 Call",
+                "instrument": "Call",
+                "strike": 60,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Protective Put",
+        "instruments": [
+            {
+                "name": "Long Stock",
+                "instrument": "Stock",
+                "qty": 1
+            },
+            {
+                "name": "Long 40 Put",
+                "instrument": "Put",
+                "strike": 40,
+                "qty": 1
+            }
+        ]
+    },
+    {
+        "name": "Collar",
+        "instruments": [
+            {
+                "name": "Long Stock",
+                "instrument": "Stock",
+                "qty": 1
+            },
+            {
+                "name": "Long 40 Put",
+                "instrument": "Put",
+                "strike": 40,
+                "qty": 1
+            },
+            {
+                "name": "Short 60 Call",
+                "instrument": "Call",
+                "strike": 60,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Bull Call Spread",
+        "instruments": [
+            {
+                "name": "Long 40 Call",
+                "instrument": "Call",
+                "strike": 40,
+                "qty": 1
+            },
+            {
+                "name": "Short 60 Call",
+                "instrument": "Call",
+                "strike": 60,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Bull Put Spread",
+        "instruments": [
+            {
+                "name": "Long 40 Put",
+                "instrument": "Put",
+                "strike": 40,
+                "qty": 1
+            },
+            {
+                "name": "Short 60 Put",
+                "instrument": "Put",
+                "strike": 60,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Bear Put Spread",
+        "instruments": [
+            {
+                "name": "Long 60 Put",
+                "instrument": "Put",
+                "strike": 60,
+                "qty": 1
+            },
+            {
+                "name": "Short 40 Put",
+                "instrument": "Put",
+                "strike": 40,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Box Spread",
+        "instruments": [
+            {
+                "name": "Long ITM Call",
+                "instrument": "Call",
+                "strike": 40,
+                "qty": 1
+            },
+            {
+                "name": "Short OTM Call",
+                "instrument": "Call",
+                "strike": 60,
+                "qty": -1
+            },
+            {
+                "name": "Long ITM Put",
+                "instrument": "Put",
+                "strike": 60,
+                "qty": 1
+            },
+            {
+                "name": "Short OTM Putt",
+                "instrument": "Put",
+                "strike": 40,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Long Straddle",
+        "instruments": [
+            {
+                "name": "Long 50 Call",
+                "instrument": "Call",
+                "strike": 50,
+                "qty": 1
+            },
+            {
+                "name": "Long 50 Put",
+                "instrument": "Put",
+                "strike": 50,
+                "qty": 1
+            }
+        ]
+    },
+    {
+        "name": "Short Straddle",
+        "instruments": [
+            {
+                "name": "Short 50 Call",
+                "instrument": "Call",
+                "strike": 50,
+                "qty": -1
+            },
+            {
+                "name": "Short 50 Put",
+                "instrument": "Put",
+                "strike": 50,
+                "qty": -1
+            }
+        ]
+    },
+    {
+        "name": "Strangle",
+        "instruments": [
+            {
+                "name": "Long 40 Call",
+                "instrument": "Call",
+                "strike": 40,
+                "qty": 1
+            },
+            {
+                "name": "Long 60 Put",
+                "instrument": "Put",
+                "strike": 60,
+                "qty": 1
+            }
+        ]
+    },
+    {
+        "name": "Iron Butterfly",
+        "instruments": [
+            {
+                "name": "Long 25 Call",
+                "instrument": "Call",
+                "strike": 25,
+                "qty": 1
+            },
+            {
+                "name": "Short 50 Call",
+                "instrument": "Call",
+                "strike": 50,
+                "qty": -2
+            },
+            {
+                "name": "Long 75 Call",
+                "instrument": "Call",
+                "strike": 75,
+                "qty": 1
+            }
+        ]
+    },
+    {
+        "name": "Iron Condor",
+        "instruments": [
+            {
+                "name": "Long 20 Call",
+                "instrument": "Call",
+                "strike": 20,
+                "qty": 1
+            },
+            {
+                "name": "Short 40 Call",
+                "instrument": "Call",
+                "strike": 40,
+                "qty": -1
+            },
+            {
+                "name": "Short 60 Call",
+                "instrument": "Call",
+                "strike": 60,
+                "qty": -1
+            },
+            {
+                "name": "Long 80 Call",
+                "instrument": "Call",
+                "strike": 80,
+                "qty": 1
+            }
+        ]
+    },
+    {
+        "name": "Put Call Parity",
+        "instruments": [
+            {
+                "name": "Long Stock",
+                "instrument": "Stock",
+                "qty": 1
+            },
+            {
+                "name": "Long 50 Put",
+                "instrument": "Put",
+                "strike": 50,
+                "qty": 1
+            },
+            {
+                "name": "Short 50 Call",
+                "instrument": "Call",
+                "strike": 50,
+                "qty": -1
+            },
+            {
+                "name": "Short Risk-free asset",
+                "instrument": "Debt",
+                "strike": 50,
+                "qty": -1
+            }
+        ]
+    }
 ]
