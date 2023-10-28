@@ -14,6 +14,15 @@ class Instrument:
 class Equity(Instrument):
     pass
 
+class Currency(Instrument):
+    pass
+
+class Commodity(Instrument):
+    pass
+
+class Index(Instrument):
+    pass
+
 class Derivative(Instrument):
     def __init__(self, underlying: Instrument, name: str = None):
         self.underlying = underlying
