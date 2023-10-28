@@ -31,7 +31,6 @@ def return_to_price(r: pd.Series | pd.DataFrame)-> pd.Series | pd.DataFrame:
 # Decorators
 def requireReturn(func):
     def wrapper(pre, *args, **kwargs):
-        print('Wrapper', args, kwargs)
         post = pre
         if isinstance(pre.index, pd.DatetimeIndex):
             post = price_to_return(pre)
@@ -40,7 +39,6 @@ def requireReturn(func):
 
 def requirePrice(func):
     def wrapper(pre, *args, **kwargs):
-        print('Wrapper', args, kwargs)
         post = pre
         if isinstance(pre.index, pd.PeriodIndex):
             post = return_to_price(pre)
@@ -48,17 +46,23 @@ def requirePrice(func):
     return wrapper
 
 @requireReturn
-def compound_return(s: pd.Series, annualize=False) -> float:
+def compound_return(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
     r = np.exp(np.log1p(s).sum())
     if annualize:
         r **= periodicity(s) / len(s)
     return r - 1
 
-def arithmetic_mean(s: pd.Series) -> float:
+@requireReturn
+def arithmetic_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return s.mean()
 
-def geometric_mean(s: pd.Series) -> float:
+@requireReturn
+def geometric_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (compound_return(s, False) + 1) ** (1 / len(s)) - 1
+
+@requireReturn
+def mean_abs_dev(s: pd.Series | pd.DataFrame) -> float | pd.Series:
+    return np.absolute(s).sum() / len(s)
 
 def avg_pos(s: pd.Series) -> float:
     return s[s >= 0].mean()

@@ -13,6 +13,9 @@ rr = pd.concat([r, r], axis=1)
 
 class TestFunctional(unittest.TestCase):
 
+    unit_price = pd.Series([100,100.3,102.91,104.04,103.1,104.55,107.06,108.66,115.83,114.21,118.67,118.07,127.64,132.74,127.83,120.03,121.71,115.75,113.32,120.34,127.32,119.18,121.2,120.72,120.48,117.95,119.24,124.85,127.84,132.06,131.14,137.3,138.13,139.51,139.23,143.96,145.4
+], index=pd.date_range('2000-01', periods=37, freq='M'))
+
     def test_periodicity(self):
         for p in ftk.PERIODICITY:
             s = pd.Series([0], index=pd.period_range("2000-01-01", periods=1, freq=p))
