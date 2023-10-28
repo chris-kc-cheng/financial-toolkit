@@ -56,13 +56,22 @@ def compound_return(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.
 def arithmetic_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return s.mean()
 
+# FIXME not tested yet
 @requireReturn
 def geometric_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (compound_return(s, False) + 1) ** (1 / len(s)) - 1
 
 @requireReturn
 def mean_abs_dev(s: pd.Series | pd.DataFrame) -> float | pd.Series:
-    return np.absolute(s).sum() / len(s)
+    mean = s.mean()
+    return np.absolute(s - mean).sum() / len(s)
+
+@requireReturn
+def variance(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
+    v = s.var()
+    if annualize:
+        v *= periodicity(s)
+    return v
 
 def avg_pos(s: pd.Series) -> float:
     return s[s >= 0].mean()
@@ -76,11 +85,12 @@ def vol_pos(s: pd.Series) -> float:
 def vol_neg(s: pd.Series) -> float:
     return s[s < 0].std()
 
-def volatility(s: pd.Series, annualize=True):
+@requireReturn
+def volatility(s: pd.Series | pd.DataFrame, annualize=False):
     # Degree of freedom is N-1 for Pandas but N for NumPy
     v = s.std()
     if annualize:
-        v **= np.sqrt(periodicity(s))
+        v *= np.sqrt(periodicity(s))
     return v
 
 def skew(s: pd.Series):
@@ -144,11 +154,11 @@ def drawdowns():
 
 def sharpe(s: pd.Series, rfr: float = 0, annualize=False) -> float:
     if not annualize:
-        r = (1 + rfr) ** (1 / periodicity(p))
+        r = (1 + rfr) ** (1 / periodicity(s))
     return (compound_return(s, annualize) - r) / volatility(s, annualize)
 
 def downside_deviation(s: pd.Series, mar : float = 0) -> float:
-    return (s[s > mar] ** 2).sum() / len(p)
+    return (s[s > mar] ** 2).sum() / len(s)
 
 def sortino(s: pd.Series, mar : float = 0) -> float:
     return (compound_return(s) - mar) / downside_deviation(s)
