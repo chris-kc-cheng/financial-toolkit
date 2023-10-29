@@ -50,7 +50,11 @@ def margin_strategy(portfolio, underlying=0, eligible=False):
                 margin_value = long.iloc[0].quantity * long.iloc[0].multiplier * np.minimum(0.1 * long.iloc[0].strike + otm(**long.iloc[0], underlying=underlying), 0.25 * short.iloc[0].strike)
         else:            
             exposure = (under.quantity * under.value).sum()
-            margin_value = exposure * (0.5 if exposure > 0 else -1.5)
+            if exposure > 0:
+                factor = 0.5
+            else:
+                factor = -1.5
+            margin_value = exposure * factor
     elif short.expiration.min() > long.expiration.max():
         # Short expires after long, recursive
         margin_value = margin_strategy(long) + short.apply(lambda row: margin(**row, underlying=underlying), axis=1).sum()

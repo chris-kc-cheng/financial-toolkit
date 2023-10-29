@@ -89,6 +89,11 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.correlation(self.price_df).iloc[0, 1], 0.995, 3)
         self.assertAlmostEqual(ftk.sharpe(self.unit_price, 0.0243), 0.93, 2)
 
+    def test_relative_risk(self):
+        self.assertAlmostEqual(ftk.tracking_error(self.unit_price, self.benchmark_price), 0.00348 * np.sqrt(35 / 36), 3)
+        self.assertAlmostEqual(ftk.tracking_error(self.unit_price, self.benchmark_price, True), 0.0121 * np.sqrt(35 / 36), 3)
+        self.assertAlmostEqual(ftk.information_ratio(self.unit_price, self.benchmark_price), -1.1, 1)
+
     def test_regression(self):
         # Regression only, does NOT take into account of risk free rate       
         self.assertAlmostEqual(ftk.beta(self.unit_price, self.benchmark_price), 0.9814, 3) # vs 0.9812        
@@ -106,16 +111,34 @@ class TestFunctional(unittest.TestCase):
 
     def test_beta_multiple(self):
         # Small difference between statsmodel and scipy/sklearn        
+        f = ftk.price_to_return(self.unit_price)
+        b = ftk.price_to_return(self.benchmark_price)
+        ff = pd.concat([f, b], axis=1)
+        bb = prices = pd.concat([b, f], axis=1)
+
         # Scipy's lingress cannot do multiple regression
+        self.assertAlmostEqual(scipy.stats.linregress(b, f).slope, 0.9814, 3) # 0.981230
 
-        scipy.stats.linregress(self.benchmark_price, self.unit_price) # 0.981230
-
-        model = sm.OLS(self.unit_price, sm.add_constant(self.benchmark_price)).fit()
-        model.params[1] =  0.98130
+        model = sm.OLS(f, sm.add_constant(b)).fit()
+        self.assertAlmostEqual(model.params[0], 0.9814, 3) # 0.98130
         
         reg = linear_model.LinearRegression()
-        reg.fit(pd.DataFrame(self.benchmark_price), self.unit_price)
-        reg.coef_ # 0.981230        
+        reg.fit(pd.DataFrame(b), f)
+        self.assertAlmostEqual(reg.coef_[0], 0.9814, 3) # 0.981230
+
+        # Linear regression, single fund
+        self.assertAlmostEqual(ftk.beta(f, b), 0.9814, 3)
+
+        # Linear regression, multiple funds
+        self.assertAlmostEqual(ftk.beta(ff, b).iloc[0], 0.9814, 3)
+        self.assertAlmostEqual(ftk.beta(ff, b).iloc[1], 1)
+
+        # Multiple regression, single fund
+        self.assertAlmostEqual(ftk.beta(f, bb).iloc[1], 1)
+
+        # Multiple regression, multiple funds
+        self.assertAlmostEqual(ftk.beta(ff, bb).iloc[0, 1], 1)
+        self.assertAlmostEqual(ftk.beta(ff, bb).iloc[1, 0], 1)
 
     def test_drawdown(self):
         # Assuming uninterrupted drawdown definition is used

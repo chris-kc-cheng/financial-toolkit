@@ -257,24 +257,45 @@ def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.Dat
 def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0, annualize=True) -> float | pd.Series:
     return (compound_return(s, annualize) - rfr) / beta(s, benchmark, rfr)
 
-def tracking_error():
-    pass
+@requireReturn
+def tracking_error(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize : bool = False) -> float | pd.Series:
+    bm = requireBenchmarkReturn(benchmark)
+    return volatility(s - bm, annualize)
 
-def information_ratio():
-    pass
+@requireReturn
+def information_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series:
+    bm = requireBenchmarkReturn(benchmark)
+    # Arithmetic    
+    return (compound_return(s, True) - compound_return(bm, True)) / tracking_error(s, bm, True)
 
-def up_capture():
-    pass
-
-def down_capture():
-    pass
-
+@requireReturn
+def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr: float = 0):
+    s = {'Number of period': len(s),
+        'Frequency': s.index.freqstr,
+        'Total Return': compound_return(s),
+"""
+        ftk.arithmetic_mean(self.unit_price)
+        ftk.compound_return(self.unit_price)
+        ftk.compound_return(self.unit_price, annualize=True)
+        mean_abs_dev(self.unit_price)
+        variance(self.unit_price)
+        ftk.volatility(self.unit_price)
+        ftk.volatility(self.unit_price, annualize=True)
+        ftk.skew(self.unit_price)
+        ftk.kurt(self.unit_price)
+        #ftk.covariance(self.price_df).iloc[0, 1]
+        #ftk.correlation(self.price_df).iloc[0, 1]
+        ftk.sharpe(self.unit_price, 0.0243)
+"""
+        'Skeweness': skew(s),
+        'Kurtosis' : kurt(s)}
+    if benchmark is not None:
+        s.update({
+            '': 1
+        })
+    return s
 
 # TODO:
-
-def summary(s: pd.Series | pd.DataFrame):
-    return {'Skeweness': skew(s),
-            'Kurtosis' : kurt(s)}
 
 def var_historical(s: pd.Series, z: float = 0.01):
     return np.percentile(s, z)
@@ -306,6 +327,18 @@ def cvar_normal(s: pd.Series, z: float = 0.01, annualize=False):
     sigma = volatility(s, annualize)
     return mu - sigma * scipy.stats.norm.pdf(scipy.stats.norm.ppf(z)) / z
 
+@requireReturn
+def up_capture():
+    bm = requireBenchmarkReturn(benchmark)
+    up = bm >= 0
+    return compound_return(s[up], True) / compound(bm[up], True)
+
+@requireReturn
+def down_capture():
+    bm = requireBenchmarkReturn(benchmark)
+    down = bm < 0
+    return compound_return(s[down], True) / compound(bm[down], True)
+
 def ytd():
     pass
 
@@ -313,4 +346,7 @@ def mtd():
     pass
 
 def drawdowns():
+    pass
+
+def m2():
     pass
