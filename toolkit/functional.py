@@ -3,6 +3,7 @@
 import numpy as np
 import scipy
 import pandas as pd
+import statsmodels.api as sm
 
 PERIODICITY = {
     'D': 252,
@@ -44,6 +45,12 @@ def requirePrice(func):
             post = return_to_price(pre)
         return func(post, *args, **kwargs)
     return wrapper
+
+def requireBenchmarkReturn(s: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
+    if isinstance(s.index, pd.DatetimeIndex):
+        return price_to_return(s)
+    else:
+        return s
 
 @requireReturn
 def compound_return(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
@@ -216,6 +223,53 @@ def upside_potential_ratio(s: pd.Series | pd.DataFrame, mar : float = 0) -> floa
 def variability_skewness(s: pd.Series | pd.DataFrame, mar : float = 0) -> float | pd.Series:
     return upside_risk(s, mar) / downside_risk(s, mar)
 
+# Relative to benchmark
+@requireReturn
+def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:        
+    bm = requireBenchmarkReturn(benchmark)
+    # series & series -> float
+    # series & benchmark(, m) -> series(m,)
+    # fund(, n) & series -> dataframe(, n)
+    # fund(, n) & benchmark(, m) -> dataframe(n, m)
+    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(bm - rfr)).fit().params).iloc[1:].squeeze()
+
+@requireReturn
+def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0, annualize=True) -> float | pd.Series | pd.DataFrame:
+    bm = requireBenchmarkReturn(benchmark)
+    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(bm - rfr)).fit().params).iloc[0].squeeze()
+
+@requireReturn
+def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    bm = requireBenchmarkReturn(benchmark)
+    bull = bm > rfr
+    return beta(s[bull], bm[bull], rfr[bull])
+
+@requireReturn
+def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    bm = requireBenchmarkReturn(benchmark)
+    bear = bm < rfr
+    return beta(s[bear], bm[bear], rfr[bear])
+
+def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    return bull_beta(s, benchmark, rfr) / bear_beta(s, benchmark, rfr)
+
+# Only one benchmark
+def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0, annualize=True) -> float | pd.Series:
+    return (compound_return(s, annualize) - rfr) / beta(s, benchmark, rfr)
+
+def tracking_error():
+    pass
+
+def information_ratio():
+    pass
+
+def up_capture():
+    pass
+
+def down_capture():
+    pass
+
+
 # TODO:
 
 def summary(s: pd.Series | pd.DataFrame):
@@ -259,32 +313,4 @@ def mtd():
     pass
 
 def drawdowns():
-    pass
-
-# Relative to benchmark
-def alpha():
-    pass
-
-def beta():
-    pass
-
-def betas():
-    pass
-
-def corr():
-    pass
-
-def tracking_error():
-    pass
-
-def information_ration():
-    pass
-
-def up_capture():
-    pass
-
-def down_capture():
-    pass
-
-def treynor():
     pass

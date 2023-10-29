@@ -3,6 +3,8 @@ import unittest
 import numpy as np
 import pandas as pd
 import scipy
+import statsmodels.api as sm
+from sklearn import linear_model
 import toolkit as ftk
 
 n = 4
@@ -13,10 +15,12 @@ rr = pd.concat([r, r], axis=1)
 
 class TestFunctional(unittest.TestCase):
 
-    unit_price = pd.Series([100,100.3,102.91,104.04,103.1,104.55,107.06,108.66,115.83,114.21,118.67,118.07,127.64,132.74,127.83,120.03,121.71,115.75,113.32,120.34,127.32,119.18,121.2,120.72,120.48,117.95,119.24,124.85,127.84,132.06,131.14,137.3,138.13,139.51,139.23,143.96,145.4
-], index=pd.date_range('1999-12', periods=37, freq='M'))
+    unit_price = pd.Series([100,100.3,102.91,104.04,103.1,104.55,107.06,108.66,115.83,114.21,118.67,118.07,127.64,132.74,127.83,120.03,121.71,115.75,113.32,120.34,127.32,119.18,121.2,120.72,120.48,117.95,119.24,124.85,127.84,132.06,131.14,137.3,138.13,139.51,139.23,143.96,145.4],
+        index=pd.date_range('1999-12', periods=37, freq='M'))
     benchmark_price = pd.Series([100,100.2,102.71,104.55,103.4,104.85,107.26,108.76,115.83,114.1,118.89,118.53,128.37,133.38,128.31,120.35,122.16,116.29,113.97,120.81,127.57,119.03,121.29,120.92,120.8,117.66,118.48,123.58,127.16,132,131.73,138.45,140.39,142.21,142.64,147.49,150.59],
-                                index=pd.date_range('1999-12', periods=37, freq='M'))
+        index=pd.date_range('1999-12', periods=37, freq='M'))
+    risk_free_return = pd.Series([0.001,0.001,0.002,0.002,0.002,0.002,0.002,0.003,0.003,0.004,0.004,0.003,0.003,0.003,0.003,0.004,0.002,0.002,0.002,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.002,0.002,0.002,0.002,0.002,0.002,0.002],
+        index=pd.period_range('2000-01', periods=36, freq='M'))
     price_df = pd.concat([unit_price, benchmark_price], axis=1)
     
 
@@ -85,7 +89,33 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.correlation(self.price_df).iloc[0, 1], 0.995, 3)
         self.assertAlmostEqual(ftk.sharpe(self.unit_price, 0.0243), 0.93, 2)
 
-    # Add benchmark regression test
+    def test_regression(self):
+        # Regression only, does NOT take into account of risk free rate       
+        self.assertAlmostEqual(ftk.beta(self.unit_price, self.benchmark_price), 0.9814, 3) # vs 0.9812        
+        self.assertAlmostEqual(ftk.alpha(self.unit_price, self.benchmark_price), -0.00078, 5)
+
+        # Jensen
+        self.assertAlmostEqual(ftk.beta(self.unit_price, self.benchmark_price, self.risk_free_return), 0.982, 3)
+        self.assertAlmostEqual(ftk.alpha(self.unit_price, self.benchmark_price, self.risk_free_return), -0.00082, 5)
+
+        self.assertAlmostEqual(ftk.bull_beta(self.unit_price, self.benchmark_price, self.risk_free_return), 1.035, 3)
+        self.assertAlmostEqual(ftk.bear_beta(self.unit_price, self.benchmark_price, self.risk_free_return), 0.948, 3)
+        self.assertAlmostEqual(ftk.beta_timing_ratio(self.unit_price, self.benchmark_price, self.risk_free_return), 1.092, 3)
+        
+        # FIXME - no test for Treynor ratio yet
+
+    def test_beta_multiple(self):
+        # Small difference between statsmodel and scipy/sklearn        
+        # Scipy's lingress cannot do multiple regression
+
+        scipy.stats.linregress(self.benchmark_price, self.unit_price) # 0.981230
+
+        model = sm.OLS(self.unit_price, sm.add_constant(self.benchmark_price)).fit()
+        model.params[1] =  0.98130
+        
+        reg = linear_model.LinearRegression()
+        reg.fit(pd.DataFrame(self.benchmark_price), self.unit_price)
+        reg.coef_ # 0.981230        
 
     def test_drawdown(self):
         # Assuming uninterrupted drawdown definition is used
