@@ -6,7 +6,8 @@ import pandas as pd
 import statsmodels.api as sm
 
 PERIODICITY = {
-    'D': 252,
+    'D': 365,
+    'B': 252,
     'W': 52,
     'M': 12,
     'Q': 4,
@@ -46,11 +47,13 @@ def requirePrice(func):
         return func(post, *args, **kwargs)
     return wrapper
 
-def requireBenchmarkReturn(s: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
-    if isinstance(s.index, pd.DatetimeIndex):
-        return price_to_return(s)
-    else:
-        return s
+def requireBenchmark(func):
+    def wrapper(x, pre, *args, **kwargs):
+        post = pre
+        if isinstance(pre.index, pd.DatetimeIndex):
+            post = price_to_return(pre)
+        return func(x, post, *args, **kwargs)
+    return wrapper
 
 @requireReturn
 def compound_return(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
@@ -225,30 +228,30 @@ def variability_skewness(s: pd.Series | pd.DataFrame, mar : float = 0) -> float 
 
 # Relative to benchmark
 @requireReturn
+@requireBenchmark
 def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:        
-    bm = requireBenchmarkReturn(benchmark)
     # series & series -> float
     # series & benchmark(, m) -> series(m,)
     # fund(, n) & series -> dataframe(, n)
     # fund(, n) & benchmark(, m) -> dataframe(n, m)
-    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(bm - rfr)).fit().params).iloc[1:].squeeze()
+    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().params).iloc[1:].squeeze()
 
 @requireReturn
+@requireBenchmark
 def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0, annualize=True) -> float | pd.Series | pd.DataFrame:
-    bm = requireBenchmarkReturn(benchmark)
-    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(bm - rfr)).fit().params).iloc[0].squeeze()
+    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().params).iloc[0].squeeze()
 
 @requireReturn
+@requireBenchmark
 def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    bm = requireBenchmarkReturn(benchmark)
-    bull = bm > rfr
-    return beta(s[bull], bm[bull], rfr[bull])
+    bull = benchmark > rfr
+    return beta(s[bull], benchmark[bull], rfr[bull])
 
 @requireReturn
+@requireBenchmark
 def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    bm = requireBenchmarkReturn(benchmark)
-    bear = bm < rfr
-    return beta(s[bear], bm[bear], rfr[bear])
+    bear = benchmark < rfr
+    return beta(s[bear], benchmark[bear], rfr[bear])
 
 def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     return bull_beta(s, benchmark, rfr) / bear_beta(s, benchmark, rfr)
@@ -258,40 +261,74 @@ def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.S
     return (compound_return(s, annualize) - rfr) / beta(s, benchmark, rfr)
 
 @requireReturn
+@requireBenchmark
 def tracking_error(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize : bool = False) -> float | pd.Series:
-    bm = requireBenchmarkReturn(benchmark)
-    return volatility(s - bm, annualize)
+    return volatility(s - benchmark, annualize)
 
 @requireReturn
+@requireBenchmark
 def information_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series:
-    bm = requireBenchmarkReturn(benchmark)
     # Arithmetic    
-    return (compound_return(s, True) - compound_return(bm, True)) / tracking_error(s, bm, True)
+    return (compound_return(s, True) - compound_return(benchmark, True)) / tracking_error(s, benchmark, True)
 
 @requireReturn
-def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr: float = 0):
+def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr: float = 0, mar: float = 0):
     s = {'Number of period': len(s),
         'Frequency': s.index.freqstr,
         'Total Return': compound_return(s),
-"""
-        ftk.arithmetic_mean(self.unit_price)
-        ftk.compound_return(self.unit_price)
-        ftk.compound_return(self.unit_price, annualize=True)
-        mean_abs_dev(self.unit_price)
-        variance(self.unit_price)
-        ftk.volatility(self.unit_price)
-        ftk.volatility(self.unit_price, annualize=True)
-        ftk.skew(self.unit_price)
-        ftk.kurt(self.unit_price)
+        'Periodic mean return': arithmetic_mean(s),
+        'Total return': compound_return(s),
+        'Annualized return': compound_return(s, annualize=True),
+        'Mean absolute deviation': mean_abs_dev(s),
+        'Variance': variance(s),
+        'Period Volatility': volatility(s),
+        'Annualized Volatility': volatility(s, annualize=True),
+        f'Sharpe ({rfr:.2%})': sharpe(s, rfr),
+        'Skewness': skew(s),
+        'Excess Kurtosis': kurt(s),
         #ftk.covariance(self.price_df).iloc[0, 1]
         #ftk.correlation(self.price_df).iloc[0, 1]
-        ftk.sharpe(self.unit_price, 0.0243)
-"""
-        'Skeweness': skew(s),
-        'Kurtosis' : kurt(s)}
+
+        # Drawdown
+        'Worst Drawdown': worst_drawdown(s),
+        'Calmar': calmar(s, rfr=rfr),
+        'Average Drawdown': avg_drawdown(s, d=3),
+        #ftk.sterling() # Original
+        'Modified Sterling': sterling_modified(s, rfr=0.0243, d=3),
+        'Drawdown Deviation': drawdown_deviation(s, d=3),
+        'Modified Burke': burke_modified(s, rfr=0.0243, d=3),
+        'Average Annual Drawdown': avg_annual_drawdown(s),
+        'Sterling-Calmar': sterling_calmar(s, rfr=0.0243, d=3),
+        'Pain Index': pain_index(s),
+        'Pain Ratio': pain(s, 0.0243),
+        'Ulcer Index': ulcer_index(s),
+        'Martin Ratio': martin(s, 0.0243),
+
+        # Partial
+        '': downside_potential(s, mar=mar),
+        '': downside_risk(s, mar=mar),
+        '': downside_risk(s, mar=mar, annualize=True),
+        '': upside_potential(s, mar=mar),
+        '': upside_risk(s, mar=mar),
+        '': upside_risk(s, mar=mar, annualize=True),
+        '': omega(s, mar=mar),
+        '': upside_potential_ratio(s, mar),
+        '': variability_skewness(s, mar),
+        '': sortino(s, mar=mar)        
+    }
     if benchmark is not None:
         s.update({
-            '': 1
+            # Relative
+            'Tracking Error': tracking_error(s, benchmark),
+            'Annualized Tracking Error': tracking_error(s, benchmark, True),
+            'Annualized Information Ratio': information_ratio(s, benchmark),
+
+            # Regression
+            'Beta': beta(s, benchmark, rfr),
+            'Alpha': alpha(s, benchmark, rfr),
+            'Bull Beta': bull_beta(s, benchmark, rfr),
+            'Bear Beta': bear_beta(s, benchmark, rfr),
+            'Beta Timing Ratio': beta_timing_ratio(s, benchmark, rfr),
         })
     return s
 
