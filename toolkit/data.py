@@ -12,7 +12,8 @@ def get_famafrench_datasets():
     return sorted([x for x in full if pattern.match(x)])
 
 def get_famafrench_factors(dataset, add_momentum: bool = False):
-    freq = 'B' if 'daily' in dataset else 'M'
+    freq = 'B' if 'aily' in dataset else 'M'
+    print('HERE', freq)
     factors = pdr.get_data_famafrench(dataset, start='1990-01-01')[0].asfreq(freq) / 100
     if add_momentum:
         # Momentum has less data

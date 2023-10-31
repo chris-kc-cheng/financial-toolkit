@@ -17,16 +17,16 @@ PERIODICITY = {
 def periodicity(r):
     return PERIODICITY[r.index.freqstr[0]]
 
-def price_to_return(p: pd.Series | pd.DataFrame)-> pd.Series | pd.DataFrame:
+def price_to_return(p: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     s = p.pct_change()
     s.index = p.index.to_period()
     return s.dropna()
 
-def return_to_price(r: pd.Series | pd.DataFrame)-> pd.Series | pd.DataFrame:    
+def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:    
     if isinstance(r, pd.Series):
         s = pd.concat([pd.Series([0]), r])
     else:
-        s = pd.concat([pd.DataFrame(np.zeros((1, r.shape[1]))), r])
+        s = pd.concat([pd.DataFrame(np.zeros((1, r.shape[1])), columns=r.columns), r])
     s.index = pd.date_range(end=r.index[-1].to_timestamp(how='e').date(), periods=len(r.index) + 1, freq=r.index.freq)
     return (s + 1).cumprod()
 
@@ -394,3 +394,6 @@ def drawdowns():
 
 def m2():
     pass
+
+def carino(r, b):
+    return np.where(r == b, 1 / (1 + r), (np.log1p(r) - np.log1p(b)) / (r - b))
