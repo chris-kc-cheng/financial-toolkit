@@ -238,8 +238,15 @@ def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: 
 
 @requireReturn
 @requireBenchmark
-def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0, annualize=True) -> float | pd.Series | pd.DataFrame:
+# FIXME: add annualize parameter
+def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().params).iloc[0].squeeze()
+
+@requireReturn
+@requireBenchmark
+# FIXME: add test case
+def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().rsquared).squeeze()
 
 @requireReturn
 @requireBenchmark
