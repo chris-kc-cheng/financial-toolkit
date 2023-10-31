@@ -134,3 +134,5 @@ col2.line_chart(gamma_df)
 
 col2.header('Vega')
 col2.line_chart(vega_df)
+
+st.markdown(open('streamlit/data/signature.md').read())

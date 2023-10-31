@@ -245,8 +245,10 @@ def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr:
 @requireReturn
 @requireBenchmark
 # FIXME: add test case
-def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().rsquared).squeeze()
+def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0, adjusted: bool = False) -> float | pd.Series | pd.DataFrame:
+    result = (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit())
+    r2 = result.rsquared_adj if adjusted else result.rsquared
+    return r2.squeeze()
 
 @requireReturn
 @requireBenchmark

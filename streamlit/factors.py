@@ -21,7 +21,20 @@ def get_factors(dataset, mom):
 def get_price(ticker):
     return ftk.price_to_return(ftk.get_yahoo(ticker))
 
+if 'price' not in st.session_state:
+    st.session_state.price = None
+
 with st.sidebar:
+
+    with st.form("my_form"):
+        ticker = st.text_input('Ticker', 'ARKK')
+        submitted = st.form_submit_button("Search")
+        if submitted:
+            try:
+                st.session_state.price = get_price(ticker)
+            except:
+                st.error('Invalid ticker')
+
     dataset = st.selectbox(
         'Select a factor',
         options = get_datasets(),
@@ -30,40 +43,66 @@ with st.sidebar:
     
     mom = st.toggle('Add momentum factor')
 
-portfolio = get_price('ARKK')
-factors = get_factors(dataset, mom)
+portfolio = st.session_state.price
 
-if ftk.periodicity(portfolio) > ftk.periodicity(factors):
-    print(ftk.periodicity(portfolio), ftk.periodicity(factors))
-    portfolio = portfolio.resample(factors.index.freqstr).aggregate(ftk.compound_return)
+st.title('Fama–French Factor Model')
 
-merged = pd.merge(portfolio, factors, left_index=True, right_index=True)
-portfolio = merged.iloc[:, 0]
-factors = merged.iloc[:, 1:]
-betas = ftk.beta(portfolio, factors)
+if portfolio is not None:
+    st.header(portfolio.name)
+    factors = get_factors(dataset, mom)
 
-attribution = betas * factors
-explained = attribution.sum(axis=1)
-combined = pd.concat([portfolio, explained], axis=1)
-combined.columns = ['Portfolio', 'Factors']
+    if ftk.periodicity(portfolio) > ftk.periodicity(factors):
+        portfolio = portfolio.resample(factors.index.freqstr).aggregate(ftk.compound_return)
 
-k = (attribution.T * ftk.carino(portfolio, 0)).T / ftk.carino(ftk.compound_return(portfolio), 0)
-contribution = k.sum().sort_values(ascending=False)
+    merged = pd.merge(portfolio, factors, left_index=True, right_index=True)
+    portfolio = merged.iloc[:, 0]
+    factors = merged.iloc[:, 1:-1]
+    rfr = merged.iloc[:, -1]
+    betas = ftk.beta(portfolio - rfr, factors)
 
-table = pd.concat([betas, contribution], axis=1)
-table.columns = ['Beta', 'Contribution']
-table = table.rename(index={'Mkt-RF': 'Market returns above risk-free rate',
-'HML': 'High minus low (HML)',
-'RF' : 'Risk-Free Rate',
-'CMA': 'Conservative minus aggressive (CMA)',
-'WML': 'Winners minus losers (WML)',
-'SMB': 'Small minus big (SMB)',
-'RMW': 'Robust minus weak (RMW)'})
+    attribution = pd.concat([betas * factors, rfr], axis=1)
+    explained = attribution.sum(axis=1) + rfr
+    combined = pd.concat([portfolio, explained], axis=1)
+    combined.columns = ['Portfolio', 'Factors']
 
-# Total return
-st.write(ftk.rsquared(portfolio, factors))
-# Unexplained
+    total_return = ftk.compound_return(portfolio)
+    k = (attribution.T * ftk.carino(portfolio, 0)).T / ftk.carino(total_return, 0)
+    contribution = k.sum().sort_values(ascending=False)
 
+    summary = pd.DataFrame({'Beta': {'Unexplained': None, 'Total': None},
+                            'Contribution': {'Unexplained': total_return - contribution.sum(), 'Total': total_return}})
 
-st.write(table.sort_values('Beta', ascending=False))
-st.line_chart(ftk.return_to_price(combined))
+    table = pd.concat([betas, contribution], axis=1)
+    table.columns = ['Beta', 'Contribution']
+    table = pd.concat([table, summary])
+    table['Contribution'] = table['Contribution'] * 100
+
+    table = table.rename(index={'Mkt-RF': 'Market returns above risk-free rate (Mkt-RF)',
+    'HML': 'High minus low (HML)',
+    'RF' : 'Risk-Free Rate (RF)',
+    'CMA': 'Conservative minus aggressive (CMA)',
+    'WML': 'Winners minus losers (WML)',
+    'SMB': 'Small minus big (SMB)',
+    'RMW': 'Robust minus weak (RMW)'})
+    table = table.sort_values('Beta', ascending=False)
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric('R-Squared', f'{ftk.rsquared(portfolio, factors):.2%}')
+    col2.metric('Adj. R-Squared', f'{ftk.rsquared(portfolio, factors, adjusted=True):.2%}')
+
+    st.dataframe(table,
+            column_config={
+            "Beta": st.column_config.NumberColumn(
+                "Beta",
+                format='%.2f'
+            ),
+                    "Contribution": st.column_config.NumberColumn(
+                "Contribution (%)",
+                format='%.1f'
+            ),
+        },)
+    st.line_chart(ftk.return_to_price(combined))
+else:
+    st.write('Please search a ticker on the sidebar e.g. `SPY`, `QQQ`, `ARKK`, `BRK-B`')    
+
+st.markdown(open('streamlit/data/signature.md').read())

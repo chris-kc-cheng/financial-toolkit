@@ -13,14 +13,17 @@ def get_famafrench_datasets():
 
 def get_famafrench_factors(dataset, add_momentum: bool = False):
     freq = 'B' if 'aily' in dataset else 'M'
-    print('HERE', freq)
-    factors = pdr.get_data_famafrench(dataset, start='1990-01-01')[0].asfreq(freq) / 100
+    data = pdr.get_data_famafrench(dataset, start='1990-01-01')[0].asfreq(freq) / 100
+    factors = data.iloc[:, :-1]
+    rfr = data.iloc[:, -1]
     if add_momentum:
         # Momentum has less data
         factors = factors.join(pdr.get_data_famafrench(re.sub(r'[35]_Factors', 'Mom_Factor', dataset), start='1990-01-01')[0].asfreq(freq) / 100, how='inner')
-    return factors
+    return factors.join(rfr, how='inner')
 
 # Yahoo
-def get_yahoo(ticker):
+def get_yahoo(ticker):    
     t = yf.Ticker(ticker)
-    return t.history(period='max')['Close'].asfreq('B')
+    s = t.history(period='max')['Close'].asfreq('B')
+    s.name = ticker
+    return s
