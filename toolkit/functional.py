@@ -229,38 +229,39 @@ def variability_skewness(s: pd.Series | pd.DataFrame, mar : float = 0) -> float 
 # Relative to benchmark
 @requireReturn
 @requireBenchmark
-def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:        
+def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series | pd.DataFrame:        
     # series & series -> float
     # series & benchmark(, m) -> series(m,)
     # fund(, n) & series -> dataframe(, n)
     # fund(, n) & benchmark(, m) -> dataframe(n, m)
-    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().params).iloc[1:].squeeze()
+    return (s).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark)).fit().params).iloc[1:].squeeze()
 
 @requireReturn
 @requireBenchmark
 # FIXME: add annualize parameter
-def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    return (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit().params).iloc[0].squeeze()
+def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series | pd.DataFrame:
+    return (s).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark)).fit().params).iloc[0].squeeze()
 
 @requireReturn
 @requireBenchmark
 # FIXME: add test case
-def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0, adjusted: bool = False) -> float | pd.Series | pd.DataFrame:
-    result = (s - rfr).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark - rfr)).fit())
+def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, adjusted: bool = False) -> float | pd.Series | pd.DataFrame:
+    result = (s).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark)).fit())
     r2 = result.rsquared_adj if adjusted else result.rsquared
     return r2.squeeze()
 
 @requireReturn
 @requireBenchmark
-def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+# Unlike pure beta, it doens't make sense to calcualte bull/bear beta on multiple indices, so benchmark must not be a DataFrame
+def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     bull = benchmark > rfr
-    return beta(s[bull], benchmark[bull], rfr[bull])
+    return beta(s[bull] - rfr[bull], benchmark[bull] - rfr[bull])
 
 @requireReturn
 @requireBenchmark
-def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     bear = benchmark < rfr
-    return beta(s[bear], benchmark[bear], rfr[bear])
+    return beta(s[bear] - rfr[bear], benchmark[bear] - rfr[bear])
 
 def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     return bull_beta(s, benchmark, rfr) / bear_beta(s, benchmark, rfr)

@@ -100,8 +100,11 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.alpha(self.unit_price, self.benchmark_price), -0.00078, 5)
 
         # Jensen
-        self.assertAlmostEqual(ftk.beta(self.unit_price, self.benchmark_price, self.risk_free_return), 0.982, 3)
-        self.assertAlmostEqual(ftk.alpha(self.unit_price, self.benchmark_price, self.risk_free_return), -0.00082, 5)
+        unit_rfr = ftk.price_to_return(self.unit_price) - self.risk_free_return
+        benchmark_rfr = ftk.price_to_return(self.benchmark_price) - self.risk_free_return
+
+        self.assertAlmostEqual(ftk.beta(unit_rfr, benchmark_rfr), 0.982, 3)
+        self.assertAlmostEqual(ftk.alpha(unit_rfr, benchmark_rfr), -0.00082, 5)
 
         self.assertAlmostEqual(ftk.bull_beta(self.unit_price, self.benchmark_price, self.risk_free_return), 1.035, 3)
         self.assertAlmostEqual(ftk.bear_beta(self.unit_price, self.benchmark_price, self.risk_free_return), 0.948, 3)

@@ -61,7 +61,7 @@ if portfolio is not None:
     betas = ftk.beta(portfolio - rfr, factors)
 
     attribution = pd.concat([betas * factors, rfr], axis=1)
-    explained = attribution.sum(axis=1) + rfr
+    explained = attribution.sum(axis=1)
     combined = pd.concat([portfolio, explained], axis=1)
     combined.columns = ['Portfolio', 'Factors']
 
@@ -86,9 +86,11 @@ if portfolio is not None:
     'RMW': 'Robust minus weak (RMW)'})
     table = table.sort_values('Beta', ascending=False)
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric('R-Squared', f'{ftk.rsquared(portfolio, factors):.2%}')
-    col2.metric('Adj. R-Squared', f'{ftk.rsquared(portfolio, factors, adjusted=True):.2%}')
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric('Portfolio Ann. Return', f'{ftk.compound_return(portfolio, annualize=True):.2%}')
+    col2.metric('Factor Ann. Return', f'{ftk.compound_return(explained, annualize=True):.2%}')
+    col3.metric('R-Squared', f'{ftk.rsquared(portfolio, factors):.2%}')
+    col4.metric('Adj. R-Squared', f'{ftk.rsquared(portfolio, factors, adjusted=True):.2%}')
 
     st.dataframe(table,
             column_config={
