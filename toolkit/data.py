@@ -29,5 +29,4 @@ def get_yahoo(ticker):
     return s
 
 def get_yahoo_bulk(tickers):    
-    px = yf.download(' '.join(tickers), period='max')['Adj Close']
-    return px.resample('M').last().dropna()
+    return yf.download(' '.join(tickers), period='max')['Adj Close']

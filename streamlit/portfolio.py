@@ -9,6 +9,7 @@ if parent not in sys.path:
 import pandas as pd
 import numpy as np
 import streamlit as st
+import altair as alt
 import toolkit as ftk
 
 tickers = {
@@ -49,6 +50,7 @@ with st.sidebar:
     bounds = st.slider(
         "Bounds", value=(0.05, 0.25), min_value=-1.0, max_value=2.0, step=0.05
     )
+    show = st.toggle('Show efficient frontier')
 
 st.title("Portfolio Optimization")
 
@@ -90,13 +92,30 @@ if len(assets) > 1:
             y='Return', x='Volatility', color='index'
             )
 
-        col2.header("Portfolio Returns")
-        col2.scatter_chart(pd.concat([
-            ftk.portfolio_return(wtgs, er),
-            ftk.portfolio_volatility(wtgs, cov)],
-            axis=1, keys=['Return', 'Volatility']).reset_index(),            
-            y='Return', x='Volatility', color='index'
+        if show:
+            ef_y = np.linspace(ftk.portfolio_return(ftk.min_vol(cov), er), ftk.portfolio_return(ftk.max_return(er), er), 10)
+            ef_x = [ftk.portfolio_volatility(ftk.min_vol_at(y, er, cov), cov) for y in ef_y]
+            ef = (alt.Chart(
+                pd.DataFrame({'Return': ef_y, 'Volatility': ef_x}))
+                .mark_line(color='grey')
+                .encode(y='Return', x='Volatility')
             )
+
+
+        col2.header("Portfolio Returns")        
+        c = (alt.Chart(pd.concat([
+                    ftk.portfolio_return(wtgs, er),
+                    ftk.portfolio_volatility(wtgs, cov)],
+                axis=1, keys=['Return', 'Volatility']).reset_index()
+                )
+                .mark_circle()
+                .encode(y='Return', x='Volatility', color=alt.Color('index',
+                    legend=alt.Legend(
+                        orient='bottom',))
+            ))
+        if show:
+            c += ef
+        col2.altair_chart(c, use_container_width=True)
     else:
         st.header("Invalid sample period")
 else:
