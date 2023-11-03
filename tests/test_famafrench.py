@@ -5,9 +5,6 @@ import toolkit as ftk
 
 class TestFamaFrench(unittest.TestCase):
     
-    def setUp(self):
-        self.factors = ftk
-
     def test_regression(self):        
         factors = ftk.get_famafrench_factors('F-F_Research_Data_Factors')
 

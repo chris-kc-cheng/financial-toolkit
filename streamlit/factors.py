@@ -1,4 +1,3 @@
-import toolkit as ftk
 import pandas as pd
 import streamlit as st
 import os
@@ -7,6 +6,7 @@ current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 if parent not in sys.path:
     sys.path.append(parent)
+import toolkit as ftk
 
 
 @st.cache_data
