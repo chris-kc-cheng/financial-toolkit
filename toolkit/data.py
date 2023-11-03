@@ -27,3 +27,7 @@ def get_yahoo(ticker):
     s = t.history(period='max')['Close'].asfreq('B')
     s.name = ticker
     return s
+
+def get_yahoo_bulk(tickers):    
+    px = yf.download(' '.join(tickers), period='max')['Adj Close']
+    return px.resample('M').last().dropna()

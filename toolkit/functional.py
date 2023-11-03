@@ -114,8 +114,11 @@ def kurt(s: pd.Series | pd.DataFrame):
     return s.kurt()
 
 @requireReturn
-def covariance(df = pd.DataFrame) -> pd.DataFrame:
-    return df.cov()
+def covariance(df = pd.DataFrame, annualize=False) -> pd.DataFrame:
+    cov = df.cov()
+    if annualize:
+        cov *= periodicity(df)
+    return cov
 
 @requireReturn
 def correlation(df = pd.DataFrame) -> pd.DataFrame:
