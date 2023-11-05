@@ -67,14 +67,14 @@ else:
     adjusted = px
 
 # Prepare the table
-begin_m = date - pd.offsets.MonthBegin()
-begin_q = date - pd.offsets.QuarterBegin(startingMonth=1) # Default is 3
-begin_y = date - pd.offsets.YearBegin()
+begin_m = date - pd.offsets.MonthEnd()
+begin_q = date - pd.offsets.QuarterEnd()
+begin_y = date - pd.offsets.YearEnd()
 
 table = pd.DataFrame({
-    'MTD': ftk.compound_return(adjusted.pct_change(fill_method=None)[begin_m:date].to_period('D')) * 100,
-    'QTD': ftk.compound_return(adjusted.pct_change(fill_method=None)[begin_q:date].to_period('D')) * 100,
-    'YTD': ftk.compound_return(adjusted.pct_change(fill_method=None)[begin_y:date].to_period('D')) * 100,
+    'MTD': ftk.compound_return(adjusted[begin_m:date].ffill()) * 100,
+    'QTD': ftk.compound_return(adjusted[begin_q:date].ffill()) * 100,
+    'YTD': ftk.compound_return(adjusted[begin_y:date].ffill()) * 100,
     'Last': adjusted[:date].stack().groupby(level=1).last(),
     'As of': adjusted[:date].aggregate(pd.Series.last_valid_index),
     'chart': pd.Series(adjusted.ffill()[:date].iloc[-20:].T.values.tolist(), index=adjusted.columns)
@@ -87,7 +87,8 @@ table['As of'] = table['As of'].apply(
 groups = ['America', 'Asia', 'EMEA', 'Currency']
 horizons = ['MTD', 'QTD', 'YTD']
 
-# Tabs
+st.title('World Indices Monitor')
+
 tabs = st.tabs(groups)
 
 for i, group in enumerate(groups):
