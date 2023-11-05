@@ -10,8 +10,8 @@ https://ftk-factors.streamlit.app/
 Portfolio Optimization\
 https://ftk-portfolio-optimization.streamlit.app/
 
-World Indices\
-To be added
+World Indices Monitor\
+https://ftk-indices.streamlit.app/
 
 ## Binder
 Interacting with my Jupyter notebook on the cloud\

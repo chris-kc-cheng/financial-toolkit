@@ -18,8 +18,9 @@ def periodicity(r):
     return PERIODICITY[r.index.freqstr[0]]
 
 def price_to_return(p: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
-    s = p.pct_change()
-    s.index = p.index.to_period()
+    freq = p.index.freqstr
+    s = p.pct_change(fill_method=None)
+    s.index = p.index.to_period('D' if freq == 'B' else freq)
     return s.dropna()
 
 def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:    
@@ -55,9 +56,24 @@ def requireBenchmark(func):
         return func(x, post, *args, **kwargs)
     return wrapper
 
+def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
+    # Yahoo always use direct quote (vs Bloomberg use indirect quote for GBP/EUR/AUD/NZD)
+    if type(s.index) == type(fc.index) and type(s.index) == type(lc.index) and periodicity(s) <= periodicity(fc) and periodicity(s) <= periodicity(lc):
+        if isinstance(s.index, pd.DatetimeIndex):
+            # Price
+            _fc = fc.reindex(s.index).ffill()
+            _lc = lc.reindex(s.index).ffill()
+            return s.div(_fc, axis=0).mul(_lc, axis=0)
+        else:
+            # Return
+            return convertFX(return_to_price(s), return_to_price(fc), return_to_price(lc))
+    else:
+        # Error converting, returning original
+        return s
+
 @requireReturn
 def compound_return(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
-    r = np.exp(np.log1p(s).sum())
+    r = np.exp(np.log1p(s).sum(min_count=1))
     if annualize:
         r **= periodicity(s) / len(s)
     return r - 1

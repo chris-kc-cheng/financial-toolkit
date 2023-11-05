@@ -52,6 +52,56 @@ class TestFunctional(unittest.TestCase):
         pd.testing.assert_series_equal(pfunc(r), p)
         pd.testing.assert_series_equal(pfunc(p), p)
 
+    def test_convert_fx(self):
+        n = 8
+        dr = pd.date_range(start='2023-11-3', periods=n, freq='D')
+        nky_p = pd.Series(np.arange(100, 100 + n), dr, name='NKY')
+        jpy_p = pd.Series(np.arange(100, 100 + n), dr, name='JPY')
+        cad_p = pd.Series(100 / np.arange(100, 100 + n), dr, name='CAD')
+        one_p = pd.Series(np.ones_like(nky_p), dr, name='ONE')
+
+        nky_nky = pd.concat([nky_p, nky_p], axis=1)
+        jpy_cad = pd.concat([jpy_p, cad_p], axis=1)
+        cad_jpy = pd.concat([cad_p, jpy_p], axis=1)
+
+        # Returns
+        nky_r = ftk.price_to_return(nky_p)
+        jpy_r = ftk.price_to_return(jpy_p)
+        cad_r = ftk.price_to_return(cad_p)
+        one_r = ftk.price_to_return(one_p)
+
+        nky_nky_r = pd.concat([nky_r, nky_r], axis=1)
+
+        # not / or create new columns
+        nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
+
+        nky_p.iloc[3] = np.NaN
+        jpy_p.iloc[2] = np.NaN
+        cad_p.iloc[4] = np.NaN
+
+        nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
+
+        # Expected
+        pd.concat([jpy_p / cad_p, cad_p / jpy_p], axis=1).prod(axis=1)  # All ones
+        jpy_cad.div(jpy_p, axis=0).iloc[:, 0]  # Ones, with some na
+        jpy_cad.div(cad_p, axis=0).iloc[:, 1]
+
+        # This SHOULDN'T be ones; reason Pandas auto match column name which is not desirable
+        (jpy_cad / cad_jpy)
+
+        # JPY depr vs USD, CAD appr vs USD, so CAD appr vs JPY a lot
+        (1 + nky_r).div(1 + jpy_r).mul(1 + cad_r) - 1
+
+        # Works
+        ftk.convertFX(nky_p, jpy_p, cad_p)
+        ftk.convertFX(nky_nky, jpy_p, cad_p)
+        ftk.convertFX(nky_r, jpy_r, cad_r)
+        ftk.convertFX(nky_nky_r, jpy_r, cad_r)
+
+        # Some diff in the middle due to NaN
+        self.assertAlmostEqual((ftk.price_to_return(ftk.convertFX(nky_p, jpy_p, cad_p)) - ftk.convertFX(nky_r, jpy_r, cad_r)).iloc[-1], 0)
+        self.assertAlmostEqual((ftk.return_to_price(ftk.convertFX(nky_r, jpy_r, cad_r)) - ftk.convertFX(nky_p, jpy_p, cad_p)).iloc[-1], 0)
+
     def test_compound_return(self):
         self.assertAlmostEqual(ftk.compound_return(p, False), -0.12)
         self.assertAlmostEqual(ftk.compound_return(r, False), -0.12)

@@ -22,11 +22,11 @@ def get_famafrench_factors(dataset, add_momentum: bool = False):
     return factors.join(rfr, how='inner')
 
 # Yahoo
-def get_yahoo(ticker):    
+def get_yahoo(ticker: str) -> pd.Series:
     t = yf.Ticker(ticker)
     s = t.history(period='max')['Close'].asfreq('B')
     s.name = ticker
     return s
 
-def get_yahoo_bulk(tickers):    
-    return yf.download(' '.join(tickers), period='max')['Adj Close']
+def get_yahoo_bulk(tickers: list, period: str = 'max') -> pd.DataFrame:
+    return yf.download(' '.join(tickers), period=period)['Adj Close'].asfreq('B')

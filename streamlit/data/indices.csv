@@ -1,0 +1,48 @@
+﻿Ticker,Group,Name,Country,Currency
+^N225,Asia,Nikkei 225,JP,JPY
+^KS11,Asia,KOSPI,KR,KRW
+^KQ11,Asia,KOSDAQ,KR,KRW
+^AXJO,Asia,S&P/ASX 200,AU,AUD
+^HSI,Asia,Hang Seng Index,HK,HKD
+^HSCE,Asia,HSCEI,HK,HKD
+000300.SS,Asia,CSI 300,CN,CNY
+000001.SS,Asia,SSE Composite,CN,CNY
+399001.SZ,Asia,Shenzhen Index,CN,CNY
+^TWII,Asia,TSEC Weighted,TW,TWD
+^NSEI,Asia,NIFTY 50,IN,INR
+^BSESN,Asia,S&P BSE SENSEX,IN,INR
+^STI,Asia,STI,SG,SGD
+USD=X,Currency,US Dollar,US,USD
+CAD=X,Currency,Canadian Dollar,CA,USD
+AUD=X,Currency,Australian Dollar,AU,USD
+CNY=X,Currency,Chinese Yuan,CN,USD
+HKD=X,Currency,Hong Kong Dollar,HK,USD
+INR=X,Currency,Indian Rupee,IN,USD
+JPY=X,Currency,Japanese Yen,JP,USD
+KRW=X,Currency,Korean Won,KR,USD
+SGD=X,Currency,Singapore Dollar,SG,USD
+TWD=X,Currency,New Taiwan Dollar,TW,USD
+VND=X,Currency,Vietnamese Dong,VN,USD
+EUR=X,Currency,Euro,EU,USD
+GBP=X,Currency,Pound Sterling,GB,USD
+RUB=X,Currency,Russian Rouble,RU,USD
+ILS=X,Currency,Israeli New Shekel,IL,USD
+BRL=X,Currency,Brazilian Real,BR,USD
+MXN=X,Currency,Mexican Peso,MX,USD
+CLP=X,Currency,Chilean Peso,CL,USD
+^STOXX50E,EMEA,EURO STOXX 50,EU,EUR
+^N100,EMEA,Euronext 100,EU,EUR
+^FTSE,EMEA,FTSE 100,GB,GBP
+^GDAXI,EMEA,DAX,DE,EUR
+^FCHI,EMEA,CAC 40,FR,EUR
+^BFX,EMEA,BEL 20,BE,EUR
+^IBEX,EMEA,IBEX 35,ES,EUR
+IMOEX.ME,EMEA,MOEX Russia,RU,RUB
+^TA125.TA,EMEA,TA-125,IL,ILS
+^GSPTSE,America,S&P/TSX Composite,CA,CAD
+^GSPC,America,S&P 500,US,USD
+^DJI,America,Dow Jones Industrial Average,US,USD
+^IXIC,America,NASDAQ Composite,US,USD
+^RUT,America,Russell 2000,US,USD
+^BVSP,America,IBOVESPA,BR,BRL
+^MXX,America,IPC Mexico,MX,MXN

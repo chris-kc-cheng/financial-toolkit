@@ -1,13 +1,8 @@
 import streamlit as st
-import pandas as pd
-from io import StringIO
 
 with st.sidebar:
-    csv = st.file_uploader("Choose a file")
+    pass
 
-if csv is not None:
-    
-    dataframe = pd.read_csv(csv)
-    st.write(dataframe)
+st.write(st.experimental_get_query_params())
 
 st.markdown(open('streamlit/data/signature.md').read())
