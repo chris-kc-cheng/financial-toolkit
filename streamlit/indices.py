@@ -59,7 +59,7 @@ if base != 'Local':
     domestic_fx = px.loc[:, f'{base}=X']
     
     adj_fx = px.filter(regex='=X$', axis=1).apply(lambda x: ftk.convertFX(domestic_fx, x, usd))
-    adj_px = px.filter(regex='^((?![=X]).)*$', axis=1).apply(lambda x: ftk.convertFX(x, foreign_fx[x.name], domestic_fx))
+    adj_px = px.filter(regex='.*(?<!=X)$', axis=1).apply(lambda x: ftk.convertFX(x, foreign_fx[x.name], domestic_fx))
 
     adjusted = pd.concat([adj_fx, adj_px], axis=1)
 
@@ -122,8 +122,7 @@ for i, group in enumerate(groups):
                     },
                     use_container_width=True)
 
-st.write({'M': begin_m,
-          'Q': begin_q,
-          'Y': begin_y})
+with st.expander('Data', expanded=False):
+    st.write(adjusted)
 
 st.markdown(open('streamlit/data/signature.md').read())
