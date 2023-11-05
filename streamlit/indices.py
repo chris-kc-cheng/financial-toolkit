@@ -80,7 +80,7 @@ table = pd.DataFrame({
     'chart': pd.Series(adjusted.ffill()[:date].iloc[-20:].T.values.tolist(), index=adjusted.columns)
 })
 table = pd.concat([data, table], axis=1)
-table['Country'] = table['Country'].apply(lambda c: get_flag(c))
+table['flag'] = table['Country'].apply(lambda c: get_flag(c))
 table['As of'] = table['As of'].apply(
     lambda d: None if pd.isnull(d) else d.strftime('%b %d'))
 
@@ -103,7 +103,7 @@ for i, group in enumerate(groups):
                     .encode(
                         alt.X('Name', sort='-y'),
                         alt.Y(horizon),
-                        alt.Color('Name')
+                        alt.Color('Country')
                     )
                 )
                 st.altair_chart(c, use_container_width=True)
@@ -111,10 +111,10 @@ for i, group in enumerate(groups):
         st.dataframe(t,
                     height=1000,
                     hide_index=True,
-                    column_order=['Country', 'Name', 'MTD',
+                    column_order=['flag', 'Name', 'MTD',
                                 'QTD', 'YTD', 'Last', 'As of', 'chart'],
                     column_config={
-                        'Country': st.column_config.ImageColumn(''),
+                        'flag': st.column_config.ImageColumn(''),
                         'MTD': st.column_config.NumberColumn(format='%.2f'),
                         'QTD': st.column_config.NumberColumn(format='%.2f'),
                         'YTD': st.column_config.NumberColumn(format='%.2f'),
