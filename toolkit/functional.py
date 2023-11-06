@@ -72,10 +72,23 @@ def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
         return s
 
 @requireReturn
-def compound_return(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
-    r = np.exp(np.log1p(s).sum(min_count=1))
+def compound_return(ts: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
+    """Compound return of time series
+
+    Args:
+        ts (pd.Series | pd.DataFrame): Pandas Series or DataFrame of returns
+        annualize (bool, optional): Annualizing the compound return. Defaults
+        to False.
+
+    Returns:
+        float | pd.Series: _description_
+
+    Examples:
+        >>> 1 + 2 = 3
+    """
+    r = np.exp(np.log1p(ts).sum(min_count=1))
     if annualize:
-        r **= periodicity(s) / len(s)
+        r **= periodicity(ts) / len(ts)
     return r - 1
 
 @requireReturn
