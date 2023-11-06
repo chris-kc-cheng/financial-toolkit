@@ -47,6 +47,16 @@ with st.sidebar:
         index=0,
     )
 
+    st.markdown('''
+        **Local**: Returns are calculated using *Direct Quotation* in US Dollar.
+                For example, Japanese Yen depreciation against US Dollar from `100` to `110` will be indicated
+                as `+10%`.
+
+        **Others**: Returns are calculated using *Indirect Quotation* in the selected currency.
+                For example, Japanese Yen depreciation against US Dollar from `100` to `110` will be indicated
+                as `-9.09%`.
+    ''')
+
 # Adjust the prices
 def getFX(c):
     return px.loc[:, f'{data.loc[c].Currency}=X']
