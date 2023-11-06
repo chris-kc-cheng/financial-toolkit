@@ -33,7 +33,7 @@ data, px = get_data()
 with st.sidebar:
 
     date = st.select_slider(
-        'Select a date',
+        'As of',
         options=px.index,
         value=px.index[-1],
         format_func=lambda d: d.strftime('%Y-%m-%d'))
@@ -57,7 +57,7 @@ with st.sidebar:
                 as `-9.09%`.
     ''')
 
-    lookback = st.slider('Lookback Period', 5, 252, 60)
+    lookback = st.slider('Sparkline lookback period', 5, 252, 252)
         
 
 # Adjust the prices

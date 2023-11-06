@@ -24,6 +24,25 @@ def get_price(ticker):
     return ftk.price_to_return(ftk.get_yahoo(ticker))
 
 
+# Return (portfolio, factors, rfr)
+def resample(portfolio, factors):
+    if ftk.periodicity(portfolio) > ftk.periodicity(factors):
+        portfolio = portfolio.resample(
+            factors.index.freqstr).aggregate(ftk.compound_return)
+
+    merged = pd.merge(portfolio, factors, left_index=True, right_index=True)
+    return merged.iloc[:, 0], merged.iloc[:, 1:-1], merged.iloc[:, -1]
+
+@st.cache_data(ttl=60)
+def get_bestfit(portfolio):
+
+    def analyse(portfolio, model):        
+        portfolio, factors, rfr = resample(portfolio, get_factors(model, mom))
+        return ftk.rsquared(portfolio - rfr, factors, adjusted=True)
+
+    models = get_datasets()
+    return pd.Series([analyse(portfolio, model) for model in models], index=models).sort_values(ascending=False)
+
 if 'price' not in st.session_state:
     st.session_state.price = None
 
@@ -52,16 +71,14 @@ st.title('Fama–French Factor Model')
 
 if portfolio is not None:
     st.header(portfolio.name)
+
+    if st.button('Check model of best fit'):
+        best = get_bestfit(portfolio)
+        st.info(f'The model of best fit is {best.index[0]} with adjusted R-squared of {best.iloc[0]:.2%}')
+
     factors = get_factors(dataset, mom)
 
-    if ftk.periodicity(portfolio) > ftk.periodicity(factors):
-        portfolio = portfolio.resample(
-            factors.index.freqstr).aggregate(ftk.compound_return)
-
-    merged = pd.merge(portfolio, factors, left_index=True, right_index=True)
-    portfolio = merged.iloc[:, 0]
-    factors = merged.iloc[:, 1:-1]
-    rfr = merged.iloc[:, -1]
+    portfolio, factors, rfr = resample(portfolio, factors)
     betas = ftk.beta(portfolio - rfr, factors)
 
     attribution = pd.concat([betas * factors, rfr], axis=1)
@@ -96,9 +113,9 @@ if portfolio is not None:
                 f'{ftk.compound_return(portfolio, annualize=True):.2%}')
     col2.metric('Factor Ann. Return',
                 f'{ftk.compound_return(explained, annualize=True):.2%}')
-    col3.metric('R-Squared', f'{ftk.rsquared(portfolio, factors):.2%}')
+    col3.metric('R-Squared', f'{ftk.rsquared(portfolio - rfr, factors):.2%}')
     col4.metric('Adj. R-Squared',
-                f'{ftk.rsquared(portfolio, factors, adjusted=True):.2%}')
+                f'{ftk.rsquared(portfolio - rfr, factors, adjusted=True):.2%}')
 
     st.dataframe(table,
                  column_config={
