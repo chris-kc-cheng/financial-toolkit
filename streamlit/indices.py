@@ -57,6 +57,9 @@ with st.sidebar:
                 as `-9.09%`.
     ''')
 
+    lookback = st.slider('Lookback Period', 5, 252, 60)
+        
+
 # Adjust the prices
 def getFX(c):
     return px.loc[:, f'{data.loc[c].Currency}=X']
@@ -87,7 +90,7 @@ table = pd.DataFrame({
     'YTD': ftk.compound_return(adjusted[begin_y:date].ffill()) * 100,
     'Last': adjusted[:date].stack().groupby(level=1).last(),
     'As of': adjusted[:date].aggregate(pd.Series.last_valid_index),
-    'chart': pd.Series(adjusted.ffill()[:date].iloc[-20:].T.values.tolist(), index=adjusted.columns)
+    'chart': pd.Series(adjusted.ffill()[:date].iloc[-lookback:].T.values.tolist(), index=adjusted.columns)
 })
 table = pd.concat([data, table], axis=1)
 table['flag'] = table['Country'].apply(lambda c: get_flag(c))
@@ -129,7 +132,7 @@ for i, group in enumerate(groups):
                         'QTD': st.column_config.NumberColumn(format='%.2f'),
                         'YTD': st.column_config.NumberColumn(format='%.2f'),
                         'Last': st.column_config.NumberColumn(format='%.2f'),
-                        'chart': st.column_config.LineChartColumn('Last 20 Days'),                        
+                        'chart': st.column_config.LineChartColumn(f'Last {lookback} Trading Days'),                        
                     },
                     use_container_width=True)
 
