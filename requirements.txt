@@ -9,3 +9,5 @@ yfinance
 ipywidgets
 streamlit
 altair<5
+sphinx
+sphinx_rtd_theme
