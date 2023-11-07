@@ -1,3 +1,5 @@
+"""Option Greeks
+"""
 import numpy as np
 from scipy import stats
 
@@ -14,10 +16,41 @@ def d2(strike, spot, rate, time, vol, dvd):
     return d1(strike, spot, rate, time, vol, dvd) - vol * np.sqrt(time)
 
 def price_call(strike, spot, rate, time, vol, dvd):
+    """Value of an European Call Option
+    
+    .. math:: Se^{-q \\tau}\Phi(d_1) - e^{-r \\tau} K\Phi(d_2)
+
+    Args:
+        strike (_type_): Exercise price
+        spot (_type_): Spot price
+        rate (_type_): _description_
+        time (_type_): _description_
+        vol (_type_): _description_
+        dvd (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     return spot * np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))\
            - strike * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
 
 def price_put(strike, spot, rate, time, vol, dvd):
+    """Value of an European Put Option
+
+    .. math::
+        e^{-r \\tau} K\Phi(-d_2) -  Se^{-q \\tau}\Phi(-d_1)
+
+    Args:
+        strike (_type_): _description_
+        spot (_type_): _description_
+        rate (_type_): _description_
+        time (_type_): _description_
+        vol (_type_): _description_
+        dvd (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     return strike * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))\
         - spot * np.exp(-dvd * time) * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
 
