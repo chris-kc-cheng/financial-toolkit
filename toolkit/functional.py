@@ -1,5 +1,6 @@
 """Works for both Series and DataFrame
 """
+from functools import wraps
 import numpy as np
 import scipy
 import pandas as pd
@@ -33,22 +34,39 @@ def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
 
 # Decorators
 def requireReturn(func):
+    """Convert to return if input is price
+    i.e. Index is DatetimeIndex
+
+    Args:
+        func (_type_): _description_
+    """
+    @wraps(func)
     def wrapper(pre, *args, **kwargs):
         post = pre
         if isinstance(pre.index, pd.DatetimeIndex):
             post = price_to_return(pre)
         return func(post, *args, **kwargs)
+    wrapper.__doc__ = func.__doc__
     return wrapper
 
 def requirePrice(func):
+    """Convert to price if input is return
+    i.e. Index is a PeriodIndex
+
+    Args:
+        func (_type_): _description_
+    """
+    @wraps(func)
     def wrapper(pre, *args, **kwargs):
         post = pre
         if isinstance(pre.index, pd.PeriodIndex):
             post = return_to_price(pre)
         return func(post, *args, **kwargs)
+    wrapper.__doc__ = func.__doc__
     return wrapper
 
 def requireBenchmark(func):
+    @wraps(func)
     def wrapper(x, pre, *args, **kwargs):
         post = pre
         if isinstance(pre.index, pd.DatetimeIndex):
@@ -73,7 +91,9 @@ def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
 
 @requireReturn
 def compound_return(ts: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
-    """Compound return of time series
+    """
+    Compound return of time series
+    
 
     Args:
         ts (pd.Series | pd.DataFrame): Pandas Series or DataFrame of returns
@@ -166,8 +186,16 @@ def max_upturn(p: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (p / p.cummin()).max()
 
 @requirePrice
-def worst_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
-    return (p / p.cummax()).min() - 1
+def worst_drawdown(ts: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Get the worst drawdown of time series
+
+    Args:
+        ts (pd.Series | pd.DataFrame): _description_
+
+    Returns:
+        float | pd.Series: The max drawdown which is always a negative number
+    """
+    return (ts / ts.cummax()).min() - 1
 
 @requirePrice
 def all_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
