@@ -15,8 +15,10 @@ PERIODICITY = {
     'A': 1
 }
 
+
 def periodicity(r):
     return PERIODICITY[r.index.freqstr[0]]
+
 
 def price_to_return(p: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     freq = p.index.freqstr
@@ -24,15 +26,20 @@ def price_to_return(p: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     s.index = p.index.to_period('D' if freq == 'B' else freq)
     return s.dropna()
 
-def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:    
+
+def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     if isinstance(r, pd.Series):
         s = pd.concat([pd.Series([0]), r])
     else:
-        s = pd.concat([pd.DataFrame(np.zeros((1, r.shape[1])), columns=r.columns), r])
-    s.index = pd.date_range(end=r.index[-1].to_timestamp(how='e').date(), periods=len(r.index) + 1, freq=r.index.freq)
+        s = pd.concat(
+            [pd.DataFrame(np.zeros((1, r.shape[1])), columns=r.columns), r])
+    s.index = pd.date_range(
+        end=r.index[-1].to_timestamp(how='e').date(), periods=len(r.index) + 1, freq=r.index.freq)
     return (s + 1).cumprod()
 
 # Decorators
+
+
 def requireReturn(func):
     """Convert to return if input is price
     i.e. Index is DatetimeIndex
@@ -48,6 +55,7 @@ def requireReturn(func):
         return func(post, *args, **kwargs)
     wrapper.__doc__ = func.__doc__
     return wrapper
+
 
 def requirePrice(func):
     """Convert to price if input is return
@@ -65,6 +73,7 @@ def requirePrice(func):
     wrapper.__doc__ = func.__doc__
     return wrapper
 
+
 def requireBenchmark(func):
     @wraps(func)
     def wrapper(x, pre, *args, **kwargs):
@@ -73,6 +82,7 @@ def requireBenchmark(func):
             post = price_to_return(pre)
         return func(x, post, *args, **kwargs)
     return wrapper
+
 
 def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
     # Yahoo always use direct quote (vs Bloomberg use indirect quote for GBP/EUR/AUD/NZD)
@@ -89,11 +99,12 @@ def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
         # Error converting, returning original
         return s
 
+
 @requireReturn
 def compound_return(ts: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
     """
     Compound return of time series
-    
+
 
     Args:
         ts (pd.Series | pd.DataFrame): Pandas Series or DataFrame of returns
@@ -111,19 +122,23 @@ def compound_return(ts: pd.Series | pd.DataFrame, annualize=False) -> float | pd
         r **= periodicity(ts) / len(ts)
     return r - 1
 
+
 @requireReturn
 def arithmetic_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return s.mean()
 
 # FIXME not tested yet @requireReturn
 
+
 def geometric_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (compound_return(s, False) + 1) ** (1 / len(s)) - 1
+
 
 @requireReturn
 def mean_abs_dev(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     mean = s.mean()
     return np.absolute(s - mean).sum() / len(s)
+
 
 @requireReturn
 def variance(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
@@ -132,17 +147,22 @@ def variance(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
         v *= periodicity(s)
     return v
 
+
 def avg_pos(s: pd.Series) -> float:
     return s[s >= 0].mean()
+
 
 def avg_neg(s: pd.Series) -> float:
     return s[s < 0].mean()
 
+
 def vol_pos(s: pd.Series) -> float:
     return s[s >= 0].std()
 
+
 def vol_neg(s: pd.Series) -> float:
     return s[s < 0].std()
+
 
 @requireReturn
 def volatility(s: pd.Series | pd.DataFrame, annualize=False):
@@ -152,38 +172,45 @@ def volatility(s: pd.Series | pd.DataFrame, annualize=False):
         v *= np.sqrt(periodicity(s))
     return v
 
+
 @requireReturn
 def skew(s: pd.Series | pd.DataFrame):
     # Degree of freedom is N-1 for Pandas but N for NumPy
     return s.skew()
+
 
 @requireReturn
 def kurt(s: pd.Series | pd.DataFrame):
     # Excess kurtosis, SciPy does not correct for bias by default
     return s.kurt()
 
+
 @requireReturn
-def covariance(df = pd.DataFrame, annualize=False) -> pd.DataFrame:
+def covariance(df=pd.DataFrame, annualize=False) -> pd.DataFrame:
     cov = df.cov()
     if annualize:
         cov *= periodicity(df)
     return cov
 
+
 @requireReturn
-def correlation(df = pd.DataFrame) -> pd.DataFrame:
+def correlation(df=pd.DataFrame) -> pd.DataFrame:
     return df.corr()
 
+
 @requireReturn
-def sharpe(s: pd.Series | pd.DataFrame, rfr: float = 0, annualize=True) -> float | pd.Series:
-    # rfr is annual
-    rate = rfr
+def sharpe(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0, annualize=True) -> float | pd.Series:
+    rate = rfr_annualized
     if not annualize:
-        rate = (1 + rfr) ** (1 / periodicity(s))
+        rate = (1 + rfr_annualized) ** (1 / periodicity(s))
     return (compound_return(s, annualize) - rate) / volatility(s, annualize)
 
-#FIXME not tested @requirePrice
+# FIXME not tested @requirePrice
+
+
 def max_upturn(p: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (p / p.cummin()).max()
+
 
 @requirePrice
 def worst_drawdown(ts: pd.Series | pd.DataFrame) -> float | pd.Series:
@@ -197,6 +224,7 @@ def worst_drawdown(ts: pd.Series | pd.DataFrame) -> float | pd.Series:
     """
     return (ts / ts.cummax()).min() - 1
 
+
 @requirePrice
 def all_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
     m = p.cummax()
@@ -205,187 +233,229 @@ def all_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
     dd = p.groupby(num).aggregate(worst_drawdown)
     return dd[dd < 0].sort_values()
 
+
 @requireReturn
 def avg_annual_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
     return p.groupby(p.index.year).aggregate(worst_drawdown).mean()
 
+
 def avg_drawdown(p: pd.Series | pd.DataFrame, d: int = 3) -> float | pd.Series:
     return all_drawdown(p)[:d].mean()
 
-def calmar(s: pd.Series | pd.DataFrame, rfr: float = 0) -> float | pd.Series:
-    return (compound_return(s, True) - rfr) / -worst_drawdown(s)
+
+def calmar(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
+    return (compound_return(s, True) - rfr_annualized) / -worst_drawdown(s)
+
 
 def sterling(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return compound_return(s, True) / np.absolute(avg_annual_drawdown() - 0.1)
 
-def sterling_modified(s: pd.Series | pd.DataFrame, rfr: float = 0, d: int = 3) -> float | pd.Series:
-    return (compound_return(s, True) - rfr) / np.absolute(avg_drawdown(s, d))
+
+def sterling_modified(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3) -> float | pd.Series:
+    return (compound_return(s, True) - rfr_annualized) / np.absolute(avg_drawdown(s, d))
+
 
 @requireReturn
 def drawdown_deviation(s: pd.Series | pd.DataFrame, d: int = 3) -> float | pd.Series:
     return -np.sqrt((all_drawdown(s)[:d] ** 2).sum() / (len(s)))
 
-def burke_modified(s: pd.Series | pd.DataFrame, rfr: float = 0, d: int = 3) -> float | pd.Series:
-    return (compound_return(s, True) - rfr) / -drawdown_deviation(s, d)
 
-def sterling_calmar(s: pd.Series | pd.DataFrame, rfr: float = 0, d: int = 3) -> float | pd.Series:
-    return (compound_return(s, True) - rfr) / -avg_annual_drawdown(s)
+def burke_modified(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3) -> float | pd.Series:
+    return (compound_return(s, True) - rfr_annualized) / -drawdown_deviation(s, d)
+
+
+def sterling_calmar(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3) -> float | pd.Series:
+    return (compound_return(s, True) - rfr_annualized) / -avg_annual_drawdown(s)
+
 
 @requirePrice
 def underwater(s: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     return s / s.cummax() - 1
+
 
 @requireReturn
 # Positive
 def ulcer_index(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return np.sqrt((underwater(s) ** 2).sum() / len(s))
 
+
 @requireReturn
 # Positive
 def pain_index(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return np.absolute(underwater(s)).sum() / len(s)
 
-def martin(s: pd.Series | pd.DataFrame, rfr: float = 0) -> float | pd.Series:
-    return (compound_return(s, True) - rfr) / ulcer_index(s)
 
-def pain(s: pd.Series | pd.DataFrame, rfr: float = 0) -> float | pd.Series:
-    return (compound_return(s, True) - rfr) / pain_index(s)
+def martin(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
+    return (compound_return(s, True) - rfr_annualized) / ulcer_index(s)
+
+
+def pain(s: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
+    return (compound_return(s, True) - rfr_annualized) / pain_index(s)
+
 
 @requireReturn
-def downside_potential(s: pd.Series | pd.DataFrame, mar : float = 0) -> float | pd.Series:
+def downside_potential(s: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
     return (mar - s[s < mar]).sum() / len(s)
 
-@requireReturn
-def upside_potential(s: pd.Series | pd.DataFrame, mar : float = 0) -> float | pd.Series:
-    return (s[s > mar] - mar).sum() / len(s)
 
 @requireReturn
-def downside_risk(s: pd.Series | pd.DataFrame, mar : float = 0, annualize=False) -> float | pd.Series:
+def upside_potential(s: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
+    return (s[s > mar] - mar).sum() / len(s)
+
+
+@requireReturn
+def downside_risk(s: pd.Series | pd.DataFrame, mar: float = 0, annualize=False) -> float | pd.Series:
     dr = np.sqrt(((mar - s[s < mar]) ** 2).sum() / len(s))
     if annualize:
         dr *= np.sqrt(periodicity(s))
     return dr
 
+
 @requireReturn
-def upside_risk(s: pd.Series | pd.DataFrame, mar : float = 0, annualize=False) -> float | pd.Series:
+def upside_risk(s: pd.Series | pd.DataFrame, mar: float = 0, annualize=False) -> float | pd.Series:
     ur = np.sqrt(((s[s > mar] - mar) ** 2).sum() / len(s))
     if annualize:
         ur *= np.sqrt(periodicity(s))
     return ur
 
-def omega(s: pd.Series | pd.DataFrame, mar : float = 0) -> float:
+
+def omega(s: pd.Series | pd.DataFrame, mar: float = 0) -> float:
     return upside_potential(s, mar) / downside_potential(s, mar)
 
-def sortino(s: pd.Series | pd.DataFrame, mar : float = 0) -> float | pd.Series:
-    ann_mar = (1 + mar) ** periodicity(s) - 1
-    return (compound_return(s, annualize=True) - ann_mar ) / downside_risk(s, mar, annualize=True)
 
-def upside_potential_ratio(s: pd.Series | pd.DataFrame, mar : float = 0) -> float | pd.Series:
+def sortino(s: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
+    ann_mar = (1 + mar) ** periodicity(s) - 1
+    return (compound_return(s, annualize=True) - ann_mar) / downside_risk(s, mar, annualize=True)
+
+
+def upside_potential_ratio(s: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
     return upside_potential(s, mar) / downside_risk(s, mar, annualize=True)
 
-def variability_skewness(s: pd.Series | pd.DataFrame, mar : float = 0) -> float | pd.Series:
+
+def variability_skewness(s: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
     return upside_risk(s, mar) / downside_risk(s, mar)
 
-# Relative to benchmark
+#########################
+# Relative to benchmark #
+#########################
+# Benchmark is already net of risk-free rate
+# If risk-free rate is yet to substract from s, you must supply the rfr_periodic
+
+
 @requireReturn
 @requireBenchmark
-def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series | pd.DataFrame:        
+def beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     # series & series -> float
     # series & benchmark(, m) -> series(m,)
     # fund(, n) & series -> dataframe(, n)
     # fund(, n) & benchmark(, m) -> dataframe(n, m)
-    return (s).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark)).fit().params).iloc[1:].squeeze()
+    return (s).aggregate(lambda y: sm.OLS(y - rfr_periodic, sm.add_constant(benchmark)).fit().params).iloc[1:].squeeze()
+
 
 @requireReturn
 @requireBenchmark
-# FIXME: add annualize parameter
-def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series | pd.DataFrame:
-    return (s).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark)).fit().params).iloc[0].squeeze()
+def alpha(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0, annualize=False) -> float | pd.Series | pd.DataFrame:
+    a = (s).aggregate(lambda y: sm.OLS(y - rfr_periodic, sm.add_constant(benchmark)).fit().params).iloc[0].squeeze()
+    if annualize:
+        # Sharpe's definition
+        a *= periodicity(s)
+    return a
+
 
 @requireReturn
 @requireBenchmark
 # FIXME: add test case
-def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, adjusted: bool = False) -> float | pd.Series | pd.DataFrame:
-    result = (s).aggregate(lambda y: sm.OLS(y, sm.add_constant(benchmark)).fit())
+def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0, adjusted: bool = False) -> float | pd.Series | pd.DataFrame:
+    result = (s).aggregate(lambda y: sm.OLS(
+        y - rfr_periodic, sm.add_constant(benchmark)).fit())
     r2 = result.rsquared_adj if adjusted else result.rsquared
     return r2.squeeze()
+
 
 @requireReturn
 @requireBenchmark
 # Unlike pure beta, it doens't make sense to calcualte bull/bear beta on multiple indices, so benchmark must not be a DataFrame
-def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    bull = benchmark > rfr
-    return beta(s[bull] - rfr[bull], benchmark[bull] - rfr[bull])
+def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    bull = benchmark > rfr_periodic
+    return beta(s[bull] - rfr_periodic[bull], benchmark[bull] - rfr_periodic[bull])
+
 
 @requireReturn
 @requireBenchmark
-def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    bear = benchmark < rfr
-    return beta(s[bear] - rfr[bear], benchmark[bear] - rfr[bear])
+def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    bear = benchmark < rfr_periodic
+    return beta(s[bear] - rfr_periodic[bear], benchmark[bear] - rfr_periodic[bear])
 
-def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    return bull_beta(s, benchmark, rfr) / bear_beta(s, benchmark, rfr)
+
+def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+    return bull_beta(s, benchmark, rfr_periodic) / bear_beta(s, benchmark, rfr_periodic)
 
 # Only one benchmark
-def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr: float | pd.Series = 0, annualize=True) -> float | pd.Series:
-    return (compound_return(s, annualize) - rfr) / beta(s, benchmark, rfr)
+
+
+def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0, annualize=True) -> float | pd.Series:
+    return (compound_return(s, annualize) - rfr_periodic) / beta(s, benchmark, rfr_periodic)
+
 
 @requireReturn
 @requireBenchmark
-def tracking_error(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize : bool = False) -> float | pd.Series:
+def tracking_error(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize: bool = False) -> float | pd.Series:
     return volatility(s - benchmark, annualize)
+
 
 @requireReturn
 @requireBenchmark
 def information_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series:
-    # Arithmetic    
+    # Arithmetic
     return (compound_return(s, True) - compound_return(benchmark, True)) / tracking_error(s, benchmark, True)
 
+
 @requireReturn
-def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr: float = 0, mar: float = 0):
+def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr_annualized: float = 0, mar: float = 0):
+
+    rfr_periodic = (1 + rfr_annualized) ** (1 / periodicity(s)) - 1
+
     s = {'Number of period': len(s),
-        'Frequency': s.index.freqstr,
-        'Total Return': compound_return(s),
-        'Periodic mean return': arithmetic_mean(s),
-        'Total return': compound_return(s),
-        'Annualized return': compound_return(s, annualize=True),
-        'Mean absolute deviation': mean_abs_dev(s),
-        'Variance': variance(s),
-        'Period Volatility': volatility(s),
-        'Annualized Volatility': volatility(s, annualize=True),
-        f'Sharpe ({rfr:.2%})': sharpe(s, rfr),
-        'Skewness': skew(s),
-        'Excess Kurtosis': kurt(s),
-        #ftk.covariance(self.price_df).iloc[0, 1]
-        #ftk.correlation(self.price_df).iloc[0, 1]
+         'Frequency': s.index.freqstr,
+         'Total Return': compound_return(s),
+         'Periodic mean return': arithmetic_mean(s),
+         'Total return': compound_return(s),
+         'Annualized return': compound_return(s, annualize=True),
+         'Mean absolute deviation': mean_abs_dev(s),
+         'Variance': variance(s),
+         'Period Volatility': volatility(s),
+         'Annualized Volatility': volatility(s, annualize=True),
+         f'Sharpe ({rfr_annualized:.2%})': sharpe(s, rfr_annualized),
+         'Skewness': skew(s),
+         'Excess Kurtosis': kurt(s),
 
-        # Drawdown
-        'Worst Drawdown': worst_drawdown(s),
-        'Calmar': calmar(s, rfr=rfr),
-        'Average Drawdown': avg_drawdown(s, d=3),
-        #ftk.sterling() # Original
-        'Modified Sterling': sterling_modified(s, rfr=0.0243, d=3),
-        'Drawdown Deviation': drawdown_deviation(s, d=3),
-        'Modified Burke': burke_modified(s, rfr=0.0243, d=3),
-        'Average Annual Drawdown': avg_annual_drawdown(s),
-        'Sterling-Calmar': sterling_calmar(s, rfr=0.0243, d=3),
-        'Pain Index': pain_index(s),
-        'Pain Ratio': pain(s, 0.0243),
-        'Ulcer Index': ulcer_index(s),
-        'Martin Ratio': martin(s, 0.0243),
+         # Drawdown
+         'Worst Drawdown': worst_drawdown(s),
+         'Calmar': calmar(s, rfr_annualized=rfr_annualized),
+         'Average Drawdown': avg_drawdown(s, d=3),
+         # ftk.sterling() # Original
+         'Modified Sterling': sterling_modified(s, rfr_annualized=0.0243, d=3),
+         'Drawdown Deviation': drawdown_deviation(s, d=3),
+         'Modified Burke': burke_modified(s, rfr_annualized=0.0243, d=3),
+         'Average Annual Drawdown': avg_annual_drawdown(s),
+         'Sterling-Calmar': sterling_calmar(s, rfr_annualized=0.0243, d=3),
+         'Pain Index': pain_index(s),
+         'Pain Ratio': pain(s, 0.0243),
+         'Ulcer Index': ulcer_index(s),
+         'Martin Ratio': martin(s, 0.0243),
 
-        # Partial
-        '': downside_potential(s, mar=mar),
-        '': downside_risk(s, mar=mar),
-        '': downside_risk(s, mar=mar, annualize=True),
-        '': upside_potential(s, mar=mar),
-        '': upside_risk(s, mar=mar),
-        '': upside_risk(s, mar=mar, annualize=True),
-        '': omega(s, mar=mar),
-        '': upside_potential_ratio(s, mar),
-        '': variability_skewness(s, mar),
-        '': sortino(s, mar=mar)        
-    }
+         # Partial
+         'Downside Potential': downside_potential(s, mar=mar),
+         'Downside Risk (Periodic)': downside_risk(s, mar=mar),
+         'Downside Risk (Annualized)': downside_risk(s, mar=mar, annualize=True),
+         'Upside Potential': upside_potential(s, mar=mar),
+         'Upside Risk (Periodic)': upside_risk(s, mar=mar),
+         'Upside Risk (Annualized)': upside_risk(s, mar=mar, annualize=True),
+         'Omega Ratio': omega(s, mar=mar),
+         'Upside Potential Ratio': upside_potential_ratio(s, mar),
+         'Variability Skewness': variability_skewness(s, mar),
+         'Sortino Ratio': sortino(s, mar=mar)
+         }
     if benchmark is not None:
         s.update({
             # Relative
@@ -394,45 +464,54 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr: float
             'Annualized Information Ratio': information_ratio(s, benchmark),
 
             # Regression
-            'Beta': beta(s, benchmark, rfr),
-            'Alpha': alpha(s, benchmark, rfr),
-            'Bull Beta': bull_beta(s, benchmark, rfr),
-            'Bear Beta': bear_beta(s, benchmark, rfr),
-            'Beta Timing Ratio': beta_timing_ratio(s, benchmark, rfr),
+            'Beta': beta(s, benchmark, rfr_periodic),
+            'Alpha (Annualized)': alpha(s, benchmark, rfr_periodic, annualize=True),
+            'Bull Beta': bull_beta(s, benchmark, rfr_periodic),
+            'Bear Beta': bear_beta(s, benchmark, rfr_periodic),
+            'Beta Timing Ratio': beta_timing_ratio(s, benchmark, rfr_periodic),
         })
     return s
 
 # TODO:
 
+
 def var_historical(s: pd.Series, z: float = 0.01):
     return np.percentile(s, z)
+
 
 def cvar_historical(s: pd.Series, z: float = 0.01):
     return s[s < var_historical(s, z)].mean()
 
+
 def is_normal(s: pd.Series, z: float = 0.01):
     return scipy.stats.jarque_bera(s)[1] > z
+
 
 def var_normal(s: pd.Series, z: float = 0.95, annualize=False) -> float:
     z = abs(scipy.stats.norm.ppf(0.95))
     mu = compound_return(s, annualize)
     sigma = volatility(s, annualize)
     return mu - sigma * z
-    
+
 # Accept both 5% or 95%
+
+
 def var_modified(s: pd.Series, z: float = 0.95, annualize=False) -> float:
     z = abs(scipy.stats.norm.ppf(0.95))
     mu = compound_return(s, annualize)
     sigma = volatility(s, annualize)
     S = skew(s)
     K = kurt(s)
-    t = z + (z ** 2 - 1) * S / 6 + (z ** 3 - 3 * z) * K / 24 - (2 * z ** 3 - 5 * z) * S ** 2 / 36
+    t = z + (z ** 2 - 1) * S / 6 + (z ** 3 - 3 * z) * \
+        K / 24 - (2 * z ** 3 - 5 * z) * S ** 2 / 36
     return mu - sigma * t
+
 
 def cvar_normal(s: pd.Series, z: float = 0.01, annualize=False):
     mu = compound_return(s, annualize)
     sigma = volatility(s, annualize)
     return mu - sigma * scipy.stats.norm.pdf(scipy.stats.norm.ppf(z)) / z
+
 
 @requireReturn
 def up_capture():
@@ -440,23 +519,29 @@ def up_capture():
     up = bm >= 0
     return compound_return(s[up], True) / compound(bm[up], True)
 
+
 @requireReturn
 def down_capture():
     bm = requireBenchmarkReturn(benchmark)
     down = bm < 0
     return compound_return(s[down], True) / compound(bm[down], True)
 
+
 def ytd():
     pass
+
 
 def mtd():
     pass
 
+
 def drawdowns():
     pass
 
+
 def m2():
     pass
+
 
 def carino(r, b):
     return np.where(r == b, 1 / (1 + r), (np.log1p(r) - np.log1p(b)) / (r - b))

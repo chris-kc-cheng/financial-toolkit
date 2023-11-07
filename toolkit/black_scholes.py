@@ -18,6 +18,9 @@ def d2(strike, spot, rate, time, vol, dvd):
 def price_call(strike, spot, rate, time, vol, dvd):
     """_summary_
 
+    .. math::
+        Se^{-q \\tau}\Phi(d_1) - e^{-r \\tau} K\Phi(d_2)
+
     Parameters
     ----------
     strike : _type_
@@ -38,12 +41,14 @@ def price_call(strike, spot, rate, time, vol, dvd):
     _type_
         _description_
     """
-    # Se^{-q \\tau}\Phi(d_1) - e^{-r \\tau} K\Phi(d_2)
     return spot * np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))\
            - strike * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
 
 def price_put(strike, spot, rate, time, vol, dvd):
     """_summary_
+
+    .. math::
+        e^{-r \\tau} K\Phi(-d_2) -  Se^{-q \\tau}\Phi(-d_1)    
 
     Args:
         strike (float): _description_
@@ -56,7 +61,6 @@ def price_put(strike, spot, rate, time, vol, dvd):
     Returns:
         _type_: _description_
     """
-    # e^{-r \\tau} K\Phi(-d_2) -  Se^{-q \\tau}\Phi(-d_1)    
     return strike * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))\
         - spot * np.exp(-dvd * time) * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
 

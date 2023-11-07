@@ -16,3 +16,6 @@ https://ftk-indices.streamlit.app/
 ## Binder
 Interacting with my Jupyter notebook on the cloud\
 https://mybinder.org/v2/gh/chris-kc-cheng/financial-toolkit/HEAD
+
+## API Doc
+https://chris-kc-cheng.github.io/financial-toolkit/toolkit.html

@@ -196,14 +196,14 @@ class TestFunctional(unittest.TestCase):
     def test_drawdown(self):
         # Assuming uninterrupted drawdown definition is used
         self.assertAlmostEqual(ftk.worst_drawdown(self.unit_price), -0.1463, 4)
-        self.assertAlmostEqual(ftk.calmar(self.unit_price, rfr=0.0243), 0.74, 2)
+        self.assertAlmostEqual(ftk.calmar(self.unit_price, rfr_annualized=0.0243), 0.74, 2)
         self.assertAlmostEqual(ftk.avg_drawdown(self.unit_price, d=3), -0.056, 3)
         #ftk.sterling() # Original
-        self.assertAlmostEqual(ftk.sterling_modified(self.unit_price, rfr=0.0243, d=3), 1.92, 2)
+        self.assertAlmostEqual(ftk.sterling_modified(self.unit_price, rfr_annualized=0.0243, d=3), 1.92, 2)
         self.assertAlmostEqual(ftk.drawdown_deviation(self.unit_price, d=3), -0.0245, 4)
-        self.assertAlmostEqual(ftk.burke_modified(self.unit_price, rfr=0.0243, d=3), 4.43, 1) # vs 4.42
+        self.assertAlmostEqual(ftk.burke_modified(self.unit_price, rfr_annualized=0.0243, d=3), 4.43, 1) # vs 4.42
         self.assertAlmostEqual(ftk.avg_annual_drawdown(self.unit_price), -0.0604, 4)
-        self.assertAlmostEqual(ftk.sterling_calmar(self.unit_price, rfr=0.0243, d=3), 1.80, 2)
+        self.assertAlmostEqual(ftk.sterling_calmar(self.unit_price, rfr_annualized=0.0243, d=3), 1.80, 2)
         self.assertAlmostEqual(ftk.pain_index(self.unit_price), 0.0376, 4)
         self.assertAlmostEqual(ftk.pain(self.unit_price, 0.0243), 2.89, 2)
         self.assertAlmostEqual(ftk.ulcer_index(self.unit_price), 0.0597, 4)
