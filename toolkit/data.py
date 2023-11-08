@@ -35,7 +35,7 @@ def get_famafrench_factors(dataset: str, add_momentum: bool = False) -> pd.DataF
 # Yahoo
 def get_yahoo(ticker: str) -> pd.Series:
     """Download the historical adjusted closing price of a security with
-    ticker `ticker`
+    ticker `ticker`.
 
     Args:
         ticker (str): Yahoo! ticker of the security

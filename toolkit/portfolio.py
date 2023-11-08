@@ -1,7 +1,10 @@
 """Portfolio Optimization Module
 
-`weights` should be a Series with shape (m,) or a DataFrame with shape (m, k)
-`returns` should be a Series with shape (m,) or a DataFrame with shape (n, m)
+`weights` should be a Series with shape (m,)
+    or a DataFrame with shape (m, k)
+
+`returns` should be a Series with shape (m,)
+    or a DataFrame with shape (n, m)
 
 where:
     n is the number of periods
@@ -113,6 +116,7 @@ def risk_contribution(weights: pd.Series | pd.DataFrame, cov: pd.DataFrame) -> p
 
 def equal_weight(er: pd.Series) -> pd.Series:
     """Equal weight each asset in a portfolio.
+    
     Also known as naive diversification.
 
     Parameters

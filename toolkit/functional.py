@@ -127,9 +127,8 @@ def compound_return(ts: pd.Series | pd.DataFrame, annualize=False) -> float | pd
 def arithmetic_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return s.mean()
 
-# FIXME not tested yet @requireReturn
 
-
+@requireReturn
 def geometric_mean(s: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (compound_return(s, False) + 1) ** (1 / len(s)) - 1
 
@@ -146,22 +145,6 @@ def variance(s: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
     if annualize:
         v *= periodicity(s)
     return v
-
-
-def avg_pos(s: pd.Series) -> float:
-    return s[s >= 0].mean()
-
-
-def avg_neg(s: pd.Series) -> float:
-    return s[s < 0].mean()
-
-
-def vol_pos(s: pd.Series) -> float:
-    return s[s >= 0].std()
-
-
-def vol_neg(s: pd.Series) -> float:
-    return s[s < 0].std()
 
 
 @requireReturn
@@ -335,6 +318,32 @@ def upside_potential_ratio(s: pd.Series | pd.DataFrame, mar: float = 0) -> float
 def variability_skewness(s: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
     return upside_risk(s, mar) / downside_risk(s, mar)
 
+# Additional
+
+@requireReturn
+def best_period(s: pd.Series) -> float:
+    return s.max()
+
+@requireReturn
+def worst_period(s: pd.Series) -> float:
+    return s.min()
+
+@requireReturn
+def avg_pos(s: pd.Series) -> float:
+    return s[s >= 0].mean()
+
+@requireReturn
+def avg_neg(s: pd.Series) -> float:
+    return s[s < 0].mean()
+
+@requireReturn
+def vol_pos(s: pd.Series) -> float:
+    return s[s >= 0].std()
+
+@requireReturn
+def vol_neg(s: pd.Series) -> float:
+    return s[s < 0].std()
+
 #########################
 # Relative to benchmark #
 #########################
@@ -415,34 +424,44 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr_annual
 
     rfr_periodic = (1 + rfr_annualized) ** (1 / periodicity(s)) - 1
 
-    s = {'Number of period': len(s),
+    sd = {'Number of period': len(s),
          'Frequency': s.index.freqstr,
          'Total Return': compound_return(s),
          'Periodic mean return': arithmetic_mean(s),
-         'Total return': compound_return(s),
+         'Periodic geometric mean': geometric_mean(s),
          'Annualized return': compound_return(s, annualize=True),
+         'Best period': best_period(s),
+         'Worst period': worst_period(s),
+         'Average positive period': avg_pos(s),
+         'Average negative period': avg_neg(s),
          'Mean absolute deviation': mean_abs_dev(s),
          'Variance': variance(s),
          'Period Volatility': volatility(s),
+         'Period volatility of positive return': vol_pos(s),
+         'Period volatility of negative return': vol_neg(s),
          'Annualized Volatility': volatility(s, annualize=True),
          f'Sharpe ({rfr_annualized:.2%})': sharpe(s, rfr_annualized),
          'Skewness': skew(s),
          'Excess Kurtosis': kurt(s),
+         'Normal (1%)': is_normal(s, 0.01),
+         'VaR Historical (95%)': var_historical(s),
+         'VaR Normal (95%)': var_normal(s),
+         'VaR Modified (95%)': var_modified(s),
 
          # Drawdown
          'Worst Drawdown': worst_drawdown(s),
          'Calmar': calmar(s, rfr_annualized=rfr_annualized),
          'Average Drawdown': avg_drawdown(s, d=3),
          # ftk.sterling() # Original
-         'Modified Sterling': sterling_modified(s, rfr_annualized=0.0243, d=3),
+         'Modified Sterling': sterling_modified(s, rfr_annualized=rfr_annualized, d=3),
          'Drawdown Deviation': drawdown_deviation(s, d=3),
-         'Modified Burke': burke_modified(s, rfr_annualized=0.0243, d=3),
+         'Modified Burke': burke_modified(s, rfr_annualized=rfr_annualized, d=3),
          'Average Annual Drawdown': avg_annual_drawdown(s),
-         'Sterling-Calmar': sterling_calmar(s, rfr_annualized=0.0243, d=3),
+         'Sterling-Calmar': sterling_calmar(s, rfr_annualized=rfr_annualized, d=3),
          'Pain Index': pain_index(s),
-         'Pain Ratio': pain(s, 0.0243),
+         'Pain Ratio': pain(s, rfr_annualized),
          'Ulcer Index': ulcer_index(s),
-         'Martin Ratio': martin(s, 0.0243),
+         'Martin Ratio': martin(s, rfr_annualized),
 
          # Partial
          'Downside Potential': downside_potential(s, mar=mar),
@@ -457,7 +476,7 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr_annual
          'Sortino Ratio': sortino(s, mar=mar)
          }
     if benchmark is not None:
-        s.update({
+        sd.update({
             # Relative
             'Tracking Error': tracking_error(s, benchmark),
             'Annualized Tracking Error': tracking_error(s, benchmark, True),
@@ -470,43 +489,88 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr_annual
             'Bear Beta': bear_beta(s, benchmark, rfr_periodic),
             'Beta Timing Ratio': beta_timing_ratio(s, benchmark, rfr_periodic),
         })
-    return s
+    return sd
 
 # TODO:
+# Accept both 5% or 95%
+
+@requireReturn
+def is_normal(s: pd.Series, z: float = 0.01):
+    # p-value > z means null hypothesis (normal) cannot be rejected
+    return scipy.stats.jarque_bera(s)[1] > z
+
+@requireReturn
+def var_historical(s: pd.Series, z: float = 0.05) -> float:
+    """_summary_
+
+    Parameters
+    ----------
+    s : pd.Series
+        _description_
+    z : float, optional
+        _description_, by default 0.05
+
+    Returns
+    -------
+    float
+        VaR, reported as a negative number
+    """
+    return np.percentile(s, z * 100)
 
 
-def var_historical(s: pd.Series, z: float = 0.01):
-    return np.percentile(s, z)
+def var_normal(s: pd.Series, a: float = 0.95) -> float:
+    """Gaussian Value-at-Risk
+
+    Parameters
+    ----------
+    s : pd.Series
+        _description_
+    a : float, optional
+        _description_, by default 0.95
+
+    Returns
+    -------
+    float
+        VaR, reported as a negative number
+    """
+    z = -abs(scipy.stats.norm.ppf(a))
+    mu = arithmetic_mean(s)
+    sigma = volatility(s, annualize=False)
+    return mu + sigma * z
 
 
+def var_modified(s: pd.Series, a: float = 0.95) -> float:
+    """Modified Value-at-Risk
+
+    Parameters
+    ----------
+    s : pd.Series
+        _description_
+    a : float, optional
+        _description_, by default 0.95
+
+    Returns
+    -------
+    float
+        mVaR, reported as a negative number
+    """
+    z = -abs(scipy.stats.norm.ppf(a))
+    mu = arithmetic_mean(s)
+    sigma = volatility(s, annualize=False)
+    S = skew(s)
+    K = kurt(s)
+    t = z + (z ** 2 - 1) * S / 6 \
+        + (z ** 3 - 3 * z) * K / 24 \
+        - (2 * z ** 3 - 5 * z) * S ** 2 / 36
+    print('Modified', mu, sigma, t, z, (z ** 2 - 1) * S / 6, (z ** 3 - 3 * z) * K / 24, - (2 * z ** 3 - 5 * z) * S ** 2 / 36)
+    return mu + sigma * t
+
+
+# To check
 def cvar_historical(s: pd.Series, z: float = 0.01):
     return s[s < var_historical(s, z)].mean()
 
-
-def is_normal(s: pd.Series, z: float = 0.01):
-    return scipy.stats.jarque_bera(s)[1] > z
-
-
-def var_normal(s: pd.Series, z: float = 0.95, annualize=False) -> float:
-    z = abs(scipy.stats.norm.ppf(0.95))
-    mu = compound_return(s, annualize)
-    sigma = volatility(s, annualize)
-    return mu - sigma * z
-
-# Accept both 5% or 95%
-
-
-def var_modified(s: pd.Series, z: float = 0.95, annualize=False) -> float:
-    z = abs(scipy.stats.norm.ppf(0.95))
-    mu = compound_return(s, annualize)
-    sigma = volatility(s, annualize)
-    S = skew(s)
-    K = kurt(s)
-    t = z + (z ** 2 - 1) * S / 6 + (z ** 3 - 3 * z) * \
-        K / 24 - (2 * z ** 3 - 5 * z) * S ** 2 / 36
-    return mu - sigma * t
-
-
+# To check
 def cvar_normal(s: pd.Series, z: float = 0.01, annualize=False):
     mu = compound_return(s, annualize)
     sigma = volatility(s, annualize)

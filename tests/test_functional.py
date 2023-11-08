@@ -220,3 +220,22 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.upside_potential_ratio(self.unit_price, 0.005), 0.22, 2)
         self.assertAlmostEqual(ftk.variability_skewness(self.unit_price, 0.005), 1.24, 2)
         self.assertAlmostEqual(ftk.sortino(self.unit_price, mar=0.005), 0.97, 2)
+
+    def test_var(self):
+        summary = ftk.summary(self.unit_price)
+         
+        self.assertAlmostEqual(summary['Periodic geometric mean'], 0.0105, 4)
+        self.assertAlmostEqual(summary['Best period'], 0.0811, 4)
+        self.assertAlmostEqual(summary['Worst period'], -0.0639, 4)
+        self.assertAlmostEqual(summary['Average positive period'], 0.0301, 4)
+        self.assertAlmostEqual(summary['Average negative period'], -0.0228, 4)
+        self.assertAlmostEqual(summary['Period volatility of positive return'], 0.0217, 4)
+        self.assertAlmostEqual(summary['Period volatility of negative return'], 0.0225, 4)
+
+        self.assertEqual(summary['Normal (1%)'], True)
+        self.assertAlmostEqual(summary['VaR Historical (95%)'], -0.0520, 4)
+        self.assertAlmostEqual(summary['VaR Normal (95%)'], -0.0443, 4)
+        self.assertAlmostEqual(summary['VaR Modified (95%)'], -0.0465, 4)
+
+    def test_summary(self):
+        pass
