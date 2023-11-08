@@ -1,4 +1,6 @@
-"""Works for both Series and DataFrame
+"""Most frequently used formulas in quantitative finance.
+
+Functions are all vectorized and work for both Series and DataFrame
 """
 from functools import wraps
 import numpy as np
@@ -37,8 +39,9 @@ def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
         end=r.index[-1].to_timestamp(how='e').date(), periods=len(r.index) + 1, freq=r.index.freq)
     return (s + 1).cumprod()
 
-# Decorators
-
+##############
+# Decorators #
+##############
 
 def requireReturn(func):
     """Convert to return if input is price
