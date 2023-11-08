@@ -4,29 +4,6 @@ toolkit package
 Submodules
 ----------
 
-toolkit.asset\_class module
----------------------------
-
-.. automodule:: toolkit.asset_class
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-toolkit.black\_scholes module
------------------------------
-
-.. automodule:: toolkit.black_scholes
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-toolkit.cboe\_margin module
----------------------------
-
-.. automodule:: toolkit.cboe_margin
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 toolkit.data module
 -------------------
@@ -48,14 +25,6 @@ toolkit.portfolio module
 ------------------------
 
 .. automodule:: toolkit.portfolio
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-toolkit.visualization module
-----------------------------
-
-.. automodule:: toolkit.visualization
    :members:
    :undoc-members:
    :show-inheritance:

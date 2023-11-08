@@ -49,4 +49,19 @@ def get_yahoo(ticker: str) -> pd.Series:
     return s
 
 def get_yahoo_bulk(tickers: list, period: str = 'max') -> pd.DataFrame:
+    """Download the historical adjusted closing price of multiple securities
+    with ticker in the `tickers` list.
+
+    Parameters
+    ----------
+    tickers : list
+        List of Yahoo! tickers
+    period : str, optional
+        Length of track record to download, by default 'max'
+
+    Returns
+    -------
+    pd.DataFrame
+        Time series of the prices of the securities
+    """
     return yf.download(' '.join(tickers), period=period)['Adj Close'].asfreq('B')
