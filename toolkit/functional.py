@@ -495,19 +495,19 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series = None, rfr_annual
 # Accept both 5% or 95%
 
 @requireReturn
-def is_normal(s: pd.Series, z: float = 0.01):
+def is_normal(s: pd.Series, a: float = 0.01):
     # p-value > z means null hypothesis (normal) cannot be rejected
-    return scipy.stats.jarque_bera(s)[1] > z
+    return scipy.stats.jarque_bera(s)[1] > a
 
 @requireReturn
-def var_historical(s: pd.Series, z: float = 0.05) -> float:
+def var_historical(s: pd.Series, a: float = 0.05) -> float:
     """_summary_
 
     Parameters
     ----------
     s : pd.Series
         _description_
-    z : float, optional
+    a : float, optional
         _description_, by default 0.05
 
     Returns
@@ -515,7 +515,7 @@ def var_historical(s: pd.Series, z: float = 0.05) -> float:
     float
         VaR, reported as a negative number
     """
-    return np.percentile(s, z * 100)
+    return np.percentile(s, a * 100)
 
 
 def var_normal(s: pd.Series, a: float = 0.95) -> float:
