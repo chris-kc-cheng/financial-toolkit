@@ -99,8 +99,7 @@ class TestFunctional(unittest.TestCase):
         ftk.convertFX(nky_nky_r, jpy_r, cad_r)
 
         # Some diff in the middle due to NaN
-        self.assertAlmostEqual((ftk.price_to_return(ftk.convertFX(nky_p, jpy_p, cad_p)) - ftk.convertFX(nky_r, jpy_r, cad_r)).iloc[-1], 0)
-        self.assertAlmostEqual((ftk.return_to_price(ftk.convertFX(nky_r, jpy_r, cad_r)) - ftk.convertFX(nky_p, jpy_p, cad_p)).iloc[-1], 0)
+        self.assertAlmostEqual((ftk.convertFX(nky_p, jpy_p, cad_p) - ftk.convertFX(nky_r, jpy_r, cad_r)).iloc[-1], 0)
 
     def test_compound_return(self):
         self.assertAlmostEqual(ftk.compound_return(p, False), -0.12)

@@ -45,11 +45,17 @@ def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
 
 
 def requireReturn(func):
-    """Convert to return if input is price
-    i.e. Index is DatetimeIndex
+    """Decorator that convert prices to returns if Index is DatetimeIndex
 
-    Args:
-        func (_type_): _description_
+    Parameters
+    ----------
+    func : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
     """
     @wraps(func)
     def wrapper(pre, *args, **kwargs):
@@ -62,11 +68,17 @@ def requireReturn(func):
 
 
 def requirePrice(func):
-    """Convert to price if input is return
-    i.e. Index is a PeriodIndex
+    """Decorator that convert returns to prices if Index is PeriodIndex
 
-    Args:
-        func (_type_): _description_
+    Parameters
+    ----------
+    func : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
     """
     @wraps(func)
     def wrapper(pre, *args, **kwargs):
@@ -79,6 +91,19 @@ def requirePrice(func):
 
 
 def requireBenchmark(func):
+    """Decorator that convert benchmark values to returns if Index is
+    DatetimeIndex
+
+    Parameters
+    ----------
+    func : _type_
+        _description_
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     @wraps(func)
     def wrapper(x, pre, *args, **kwargs):
         post = pre
@@ -88,17 +113,39 @@ def requireBenchmark(func):
     return wrapper
 
 
-def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
-    # Yahoo always use direct quote (vs Bloomberg use indirect quote for GBP/EUR/AUD/NZD)
-    if type(s.index) == type(fc.index) and type(s.index) == type(lc.index) and periodicity(s) <= periodicity(fc) and periodicity(s) <= periodicity(lc):
+def convertFX(s: pd.Series | pd.DataFrame, foreign: pd.Series, domestic: pd.Series) -> pd.Series | pd.DataFrame:
+    """Convert the time series from foreign currency to domestic currency.
+
+    Note
+    ----
+    Yahoo always use direct quote.
+    (vs Bloomberg use indirect quote for GBP/EUR/AUD/NZD)
+
+    Parameters
+    ----------
+    s : pd.Series | pd.DataFrame
+        Time series of asset(s). It can be a Series or DataFrame of either
+        prices or returns, but not a mix of both.
+    foreign : pd.Series
+        Foreign currency, which the currency that the asset is denominated
+    domestic : pd.Series
+        Domestic currency, which is the currency of the investor's home country
+
+    Returns
+    -------
+    pd.Series | pd.DataFrame
+        Time series of the prices
+    """
+    if type(s.index) == type(foreign.index) and type(s.index) == type(domestic.index) and periodicity(s) <= periodicity(foreign) and periodicity(s) <= periodicity(domestic):
         if isinstance(s.index, pd.DatetimeIndex):
             # Price
-            _fc = fc.reindex(s.index).ffill()
-            _lc = lc.reindex(s.index).ffill()
+            # If no FX is quoted on a particular day, filled with the last quoted price
+            _fc = foreign.reindex(s.index).ffill()
+            _lc = domestic.reindex(s.index).ffill()
             return s.div(_fc, axis=0).mul(_lc, axis=0)
         else:
             # Return
-            return convertFX(return_to_price(s), return_to_price(fc), return_to_price(lc))
+            return convertFX(return_to_price(s), return_to_price(foreign), return_to_price(domestic))
     else:
         # Error converting, returning original
         return s
@@ -106,20 +153,19 @@ def convertFX(s: pd.Series | pd.DataFrame, fc: pd.Series, lc: pd.Series):
 
 @requireReturn
 def compound_return(ts: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
-    """
-    Compound return of time series
+    """Compound return of time series
 
+    Parameters
+    ----------
+    ts : pd.Series | pd.DataFrame
+        Pandas Series or DataFrame of returns
+    annualize : bool, optional
+        Annualizing the compound return, by default False
 
-    Args:
-        ts (pd.Series | pd.DataFrame): Pandas Series or DataFrame of returns
-        annualize (bool, optional): Annualizing the compound return. Defaults
-        to False.
-
-    Returns:
-        float | pd.Series: _description_
-
-    Examples:
-        >>> 1 + 2 = 3
+    Returns
+    -------
+    float | pd.Series
+        _description_
     """
     r = np.exp(np.log1p(ts).sum(min_count=1))
     if annualize:
