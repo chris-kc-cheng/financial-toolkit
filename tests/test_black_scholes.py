@@ -55,7 +55,7 @@ class TestGreeks(unittest.TestCase):
         theta = ftk.theta_put(50, spot, 0.05, 0.3846, 0.2, 0.1)
         theta -= ftk.theta_call(50, spot, 0.05, 0.3846, 0.2, 0.1)
         theta += 0.1 * spot * np.exp(-0.1 * 0.3846)
-        theta -= 0.05 * 50 * np.exp(-0.05 * 0.3846) # Most like this line...
+        theta -= 0.05 * 50 * np.exp(-0.05 * 0.3846)
         np.testing.assert_allclose(theta, 0, atol=1e-07)        
 
         rho = ftk.rho_put(50, spot, 0.05, 0.3846, 0.2, 0.1)

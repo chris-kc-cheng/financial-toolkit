@@ -147,14 +147,50 @@ st.line_chart(value_df)
 col1, col2 = st.columns(2)
 col1.header('Delta')
 col1.line_chart(delta_df)
+with col1.expander("See explanation"):
+    st.markdown('''
+Delta is the rate of change of the option price with respect to the price of the underlying asset.
+
+$\Delta(call) = e^{-q \\tau} \Phi(d_1)$
+                
+$\Delta(put) = - e^{-q \\tau} \Phi(-d_1)$
+
+For an option with delta of 0.5, its value will increase by \$5 when the price of the underlying asset increase by \$10.
+                ''')
 
 col1.header('Theta')
 col1.line_chart(theta_df)
+with col1.expander("See explanation"):
+    st.markdown('''
+Theta is the rate of change of the value of the portfolio with respect to the passage of time.
+
+$\Theta(call) = - e^{-q \\tau} \\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} - rKe^{-r \\tau}\Phi(d_2) + qSe^{-q \\tau}\Phi(d_1)$
+
+$\Theta(put) = - e^{-q \\tau}\\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} + rKe^{-r \\tau}\Phi(-d_2) - qSe^{-q \\tau}\Phi(-d_1)$
+
+For an option with theta of -4, its value will decrease by \$4 / 252 per trading day.
+                ''')
 
 col2.header('Gamma')
 col2.line_chart(gamma_df)
+with col2.expander("See explanation"):
+    st.markdown('''
+Gamma is the rate of change of the portfolio’s delta with respect to the price of the underlying asset.
+
+$\Gamma = e^{-q \\tau} \\frac{\\varphi(d_1)}{S\sigma\sqrt{\\tau}} = K e^{-r \\tau} \\frac{\\varphi(d_2)}{S^2\sigma\sqrt{\\tau}}$
+
+For an option with gamma of 0.1, its **delta** will increase by 0.5 when the price of the underlying asset increase by \$5.
+                ''')
 
 col2.header('Vega')
 col2.line_chart(vega_df)
+with col2.expander("See explanation"):
+    st.markdown('''
+Vega is the rate of change of the value of the portfolio with respect to the volatility of the underlying asset.
+
+$\mathcal{V} = e^{-q \\tau} \\varphi(d_1) \sqrt{\\tau} = K e^{-r \\tau} \\varphi(d_2) \sqrt{\\tau}$
+                
+For an option with vega of 15, its value will increase by \$0.15 when the volatility of the underlying asset increase by 0.01 (e.g. from 20% to 21%).
+                ''')
 
 st.markdown(open('streamlit/data/signature.md').read())
