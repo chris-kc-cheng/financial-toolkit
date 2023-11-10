@@ -731,7 +731,7 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic, mar
             # Regression
             'Beta': beta(s, mkt_rfr, rfr_periodic),
             'Alpha (Annualized)': alpha(s, mkt_rfr, rfr_periodic, annualize=True),
-            'Correlation': correlation(pd.concat([s_rfr, mkt_rfr], axis=1)).iloc[0, 1],
+            'Correlation': correlation(pd.concat([s_rfr, mkt_rfr], axis=1)).iloc[0, -1],
             'R-Squared': rsquared(s, mkt_rfr, rfr_periodic),
             'Bull Beta': bull_beta(s, benchmark, rfr_periodic), # Bull/Bear/Timing not tested
             'Bear Beta': bear_beta(s, benchmark, rfr_periodic),

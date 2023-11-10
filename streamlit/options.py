@@ -193,7 +193,7 @@ For an option with theta of -4, its value will decrease by \$4 / 252 per trading
         st.markdown('''
 Vega is the rate of change of the value of the portfolio with respect to the volatility of the underlying asset.
 
-$\mathcal{V} = e^{-q \\tau} \\varphi(d_1) \sqrt{\\tau} = K e^{-r \\tau} \\varphi(d_2) \sqrt{\\tau}$
+$\mathcal{V} = S e^{-q \\tau} \\varphi(d_1) \sqrt{\\tau} = K e^{-r \\tau} \\varphi(d_2) \sqrt{\\tau}$
                 
 For an option with vega of 15, its value will increase by \$0.15 when the volatility of the underlying asset increase by 0.01 (e.g. from 20% to 21%).
                     ''')
