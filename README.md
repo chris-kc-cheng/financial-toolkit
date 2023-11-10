@@ -13,6 +13,9 @@ https://ftk-portfolio-optimization.streamlit.app/
 World Indices Monitor\
 https://ftk-indices.streamlit.app/
 
+Peer Group Analysis\
+TBC
+
 ## Binder
 Interacting with my Jupyter notebook on the cloud\
 https://mybinder.org/v2/gh/chris-kc-cheng/financial-toolkit/HEAD

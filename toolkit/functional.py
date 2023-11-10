@@ -260,6 +260,9 @@ def worst_drawdown(ts: pd.Series | pd.DataFrame) -> float | pd.Series:
 
 @requirePrice
 def all_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
+    # Drawdown must be calculated for each series individually
+    if isinstance(p, pd.DataFrame):
+        return p.aggregate(all_drawdown)
     m = p.cummax()
     peak = (p == m) & (p < m).shift(-1)
     num = peak.cumsum()
@@ -273,6 +276,9 @@ def avg_annual_drawdown(p: pd.Series | pd.DataFrame) -> float | pd.Series:
 
 
 def avg_drawdown(p: pd.Series | pd.DataFrame, d: int = 3) -> float | pd.Series:
+    # Average drawdown must be calculated for each series individually
+    if isinstance(p, pd.DataFrame):
+        return p.aggregate(lambda s: avg_drawdown(s, 3))
     return all_drawdown(p)[:d].mean()
 
 
@@ -620,14 +626,14 @@ def rsquared(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, r
 # Unlike pure beta, it doens't make sense to calcualte bull/bear beta on multiple indices, so benchmark must not be a DataFrame
 def bull_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     bull = benchmark > rfr_periodic
-    return beta(s[bull] - rfr_periodic[bull], benchmark[bull] - rfr_periodic[bull])
+    return beta(s[bull].subtract(rfr_periodic[bull], axis=0), benchmark[bull].subtract(rfr_periodic[bull], axis=0))
 
 
 @requireReturn
 @requireBenchmark
 def bear_beta(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
     bear = benchmark < rfr_periodic
-    return beta(s[bear] - rfr_periodic[bear], benchmark[bear] - rfr_periodic[bear])
+    return beta(s[bear].subtract(rfr_periodic[bear], axis=0), benchmark[bear].subtract(rfr_periodic[bear], axis=0))
 
 
 def beta_timing_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
@@ -644,7 +650,7 @@ def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: flo
 @requireReturn
 @requireBenchmark
 def tracking_error(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize: bool = False) -> float | pd.Series:
-    return volatility(s - benchmark, annualize)
+    return volatility(s.subtract(benchmark, axis=0), annualize)
 
 
 @requireReturn
@@ -659,6 +665,7 @@ def information_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.Dat
 def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic, mar: float = 0):
 
     rfr_annualized = compound_return(rfr_periodic, annualize=True)
+    s_rfr = s.subtract(rfr_periodic, axis=0)
     mkt_rfr = benchmark - rfr_periodic
 
     sd = {
@@ -724,7 +731,7 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic, mar
             # Regression
             'Beta': beta(s, mkt_rfr, rfr_periodic),
             'Alpha (Annualized)': alpha(s, mkt_rfr, rfr_periodic, annualize=True),
-            'Correlation': correlation(pd.concat([s - rfr_periodic, mkt_rfr], axis=1)).iloc[0, 1],
+            'Correlation': correlation(pd.concat([s_rfr, mkt_rfr], axis=1)).iloc[0, 1],
             'R-Squared': rsquared(s, mkt_rfr, rfr_periodic),
             'Bull Beta': bull_beta(s, benchmark, rfr_periodic), # Bull/Bear/Timing not tested
             'Bear Beta': bear_beta(s, benchmark, rfr_periodic),

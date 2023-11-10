@@ -62,4 +62,16 @@ class TestGreeks(unittest.TestCase):
         rho -= ftk.rho_call(50, spot, 0.05, 0.3846, 0.2, 0.1)
         rho += 50 * 0.3846 * np.exp(-0.05 * 0.3846)
         np.testing.assert_allclose(rho, 0, atol=1e-07)
+
+    def test_approximation(self):
+        self.assertAlmostEqual(ftk.delta_call(40, 43, 0.1, 0.5, 0.2, 0) * 1
+                               + 0.5 * ftk.gamma(40, 43, 0.1, 0.5, 0.2, 0) * 1 ** 2
+                               + ftk.theta_call(40, 43, 0.1, 0.5, 0.2, 0) * 1 / 26,
+                               ftk.price_call(40, 44, 0.1, 0.5 - 1 / 26, 0.2, 0)                               
+                               - ftk.price_call(40, 43, 0.1, 0.5, 0.2, 0), 2)
         
+        self.assertAlmostEqual(ftk.delta_put(40, 43, 0.1, 0.5, 0.2, 0) * 1
+                               + 0.5 * ftk.gamma(40, 43, 0.1, 0.5, 0.2, 0) * 1 ** 2
+                               + ftk.theta_put(40, 43, 0.1, 0.5, 0.2, 0) * 1 / 26,
+                               ftk.price_put(40, 44, 0.1, 0.5 - 1 / 26, 0.2, 0)                               
+                               - ftk.price_put(40, 43, 0.1, 0.5, 0.2, 0), 2)
