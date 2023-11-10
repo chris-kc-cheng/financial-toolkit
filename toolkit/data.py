@@ -64,4 +64,5 @@ def get_yahoo_bulk(tickers: list, period: str = 'max') -> pd.DataFrame:
     pd.DataFrame
         Time series of the prices of the securities
     """
+    # Columns are already the tickers
     return yf.download(' '.join(tickers), period=period)['Adj Close'].asfreq('B')

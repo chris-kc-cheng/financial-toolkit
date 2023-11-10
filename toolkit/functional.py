@@ -26,7 +26,7 @@ def price_to_return(p: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     freq = p.index.freqstr
     s = p.pct_change(fill_method=None)
     s.index = p.index.to_period('D' if freq == 'B' else freq)
-    return s.dropna()
+    return s.iloc[1:] #.dropna()
 
 
 def return_to_price(r: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
