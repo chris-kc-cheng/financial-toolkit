@@ -652,12 +652,17 @@ def treynor(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: flo
 def tracking_error(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize: bool = False) -> float | pd.Series:
     return volatility(s.subtract(benchmark, axis=0), annualize)
 
+@requireReturn
+@requireBenchmark
+def active_return(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize=True) -> float | pd.Series:
+    # Arithmetic
+    return compound_return(s, True) - compound_return(benchmark, True)
 
 @requireReturn
 @requireBenchmark
 def information_ratio(s: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series:
     # Arithmetic
-    return (compound_return(s, True) - compound_return(benchmark, True)) / tracking_error(s, benchmark, True)
+    return active_return(s, benchmark, True) / tracking_error(s, benchmark, True)
 
 
 @requireReturn
@@ -669,21 +674,21 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic, mar
     mkt_rfr = benchmark - rfr_periodic
 
     sd = {
-            'Number of period': len(s),
+            'Number of Period': len(s),
             'Frequency': s.index.freqstr,
             'Total Return': compound_return(s),
-            'Periodic mean return': arithmetic_mean(s),
-            'Periodic geometric mean': geometric_mean(s),
-            'Annualized return': compound_return(s, annualize=True),
-            'Best period': best_period(s),
-            'Worst period': worst_period(s),
-            'Average positive period': avg_pos(s),
-            'Average negative period': avg_neg(s),
-            'Mean absolute deviation': mean_abs_dev(s),
+            'Periodic Mean Return': arithmetic_mean(s),
+            'Periodic Geometric Mean': geometric_mean(s),
+            'Annualized Return': compound_return(s, annualize=True),
+            'Best Period': best_period(s),
+            'Worst Period': worst_period(s),
+            'Average Positive Period': avg_pos(s),
+            'Average Negative Period': avg_neg(s),
+            'Mean Absolute Deviation': mean_abs_dev(s),
             'Variance': variance(s),
             'Period Volatility': volatility(s),
-            'Period volatility of positive return': vol_pos(s),
-            'Period volatility of negative return': vol_neg(s),
+            'Period Volatility of Positive Return': vol_pos(s),
+            'Period Volatility of Negative Return': vol_neg(s),
             'Annualized Volatility': volatility(s, annualize=True),
             f'Sharpe ({rfr_annualized:.2%})': sharpe(s, rfr_annualized),
             'Skewness': skew(s),
@@ -726,12 +731,13 @@ def summary(s: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic, mar
             # Relative
             'Tracking Error': tracking_error(s, benchmark),
             'Annualized Tracking Error': tracking_error(s, benchmark, True),
+            'Annualized Active Return': active_return(s, benchmark, True),
             'Annualized Information Ratio': information_ratio(s, benchmark),
 
             # Regression
             'Beta': beta(s, mkt_rfr, rfr_periodic),
             'Alpha (Annualized)': alpha(s, mkt_rfr, rfr_periodic, annualize=True),
-            'Correlation': correlation(pd.concat([s_rfr, mkt_rfr], axis=1)).iloc[0, -1],
+            'Correlation': correlation(pd.concat([s_rfr, mkt_rfr], axis=1)).iloc[-1, :-1].squeeze(),
             'R-Squared': rsquared(s, mkt_rfr, rfr_periodic),
             'Bull Beta': bull_beta(s, benchmark, rfr_periodic), # Bull/Bear/Timing not tested
             'Bear Beta': bear_beta(s, benchmark, rfr_periodic),
@@ -769,7 +775,7 @@ def var_historical(s: pd.Series, alpha: float = 0.95) -> float:
         VaR, reported as a negative number
     """
     a = min(alpha, 1 - alpha)
-    return np.percentile(s, a * 100)
+    return s.quantile(a)
 
 
 def var_normal(s: pd.Series, alpha: float = 0.95) -> float:

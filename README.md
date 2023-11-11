@@ -14,7 +14,7 @@ World Indices Monitor\
 https://ftk-indices.streamlit.app/
 
 Peer Group Analysis\
-TBC
+https://share.streamlit.io/
 
 ## Binder
 Interacting with my Jupyter notebook on the cloud\

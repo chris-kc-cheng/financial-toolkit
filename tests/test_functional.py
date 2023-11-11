@@ -231,13 +231,13 @@ class TestFunctional(unittest.TestCase):
     def test_summary(self):
         summary = ftk.summary(self.unit_price, self.benchmark_price, self.risk_free_return)
          
-        self.assertAlmostEqual(summary['Periodic geometric mean'], 0.0105, 4)
-        self.assertAlmostEqual(summary['Best period'], 0.0811, 4)
-        self.assertAlmostEqual(summary['Worst period'], -0.0639, 4)
-        self.assertAlmostEqual(summary['Average positive period'], 0.0301, 4)
-        self.assertAlmostEqual(summary['Average negative period'], -0.0228, 4)
-        self.assertAlmostEqual(summary['Period volatility of positive return'], 0.0217, 4)
-        self.assertAlmostEqual(summary['Period volatility of negative return'], 0.0225, 4)
+        self.assertAlmostEqual(summary['Periodic Geometric Mean'], 0.0105, 4)
+        self.assertAlmostEqual(summary['Best Period'], 0.0811, 4)
+        self.assertAlmostEqual(summary['Worst Period'], -0.0639, 4)
+        self.assertAlmostEqual(summary['Average Positive Period'], 0.0301, 4)
+        self.assertAlmostEqual(summary['Average Negative Period'], -0.0228, 4)
+        self.assertAlmostEqual(summary['Period Volatility of Positive Return'], 0.0217, 4)
+        self.assertAlmostEqual(summary['Period Volatility of Negative Return'], 0.0225, 4)
         
         self.assertEqual(summary['Normal (1%)'], True)
         self.assertAlmostEqual(summary['VaR Historical (95%)'], -0.0520, 4)
@@ -251,6 +251,7 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(summary['Downside Risk (Annualized)'], 0.0663, 4)
         self.assertAlmostEqual(summary['Omega Ratio'], 2.3382, 4),
         self.assertAlmostEqual(summary['Sortino Ratio'], 2.0034, 4),
+        self.assertAlmostEqual(summary['Annualized Active Return'], -0.0133, 4)
         self.assertAlmostEqual(summary['Annualized Tracking Error'], 0.0122, 4)
         self.assertAlmostEqual(summary['Annualized Information Ratio'], -1.0921, 4)
         self.assertAlmostEqual(summary['Beta'], 0.98, 2)
