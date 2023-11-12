@@ -30,3 +30,9 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/chris-kc-cheng/financial-toolkit"
 "Bug Tracker" = "https://github.com/chris-kc-cheng/financial-toolkit/issues"
+
+[tool.hatch.build]
+include = [
+  "toolkit/*.py",
+  "/tests",
+]
