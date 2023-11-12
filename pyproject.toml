@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fintoolkit"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Chris Cheng", email="kc1116@gmail.com" },
 ]
 description = "Financial Toolkit"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
