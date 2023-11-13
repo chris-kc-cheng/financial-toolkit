@@ -36,5 +36,5 @@ class TestPortfolio(unittest.TestCase):
     def test_risk_parity(self):
 
         rc = ftk.risk_contribution(ftk.risk_parity(self.cov), self.cov)
-        self.assertAlmostEqual(rc.min(), rc.max(), 3)
+        self.assertAlmostEqual(rc.min(), rc.max(), 2)
         

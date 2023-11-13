@@ -3,9 +3,5 @@ scipy
 pandas
 pandas-datareader
 statsmodels
-matplotlib
 scikit-learn
 yfinance
-ipywidgets
-streamlit
-altair<5
