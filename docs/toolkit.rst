@@ -13,6 +13,14 @@ toolkit.data module
    :undoc-members:
    :show-inheritance:
 
+toolkit.black\_scholes module
+-----------------------------
+
+.. automodule:: toolkit.black_scholes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
 toolkit.functional module
 -------------------------
 

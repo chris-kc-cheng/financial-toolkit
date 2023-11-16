@@ -30,6 +30,9 @@ def bp(face: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25) 
 def d1(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Probability of an European option being exercised.
 
+    .. math::
+        d_1 &= \\frac{\ln(S/K) + \left(r - q + \\frac{1}{2}\sigma^2\\right)\\tau}{\sigma\sqrt{\\tau}}      
+
     Parameters
     ----------
     strike : float, optional
@@ -54,6 +57,9 @@ def d1(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05
 
 def d2(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Probability of an European option **not** being exercised.
+
+    .. math::
+        d_2 = \\frac{\ln(S/K) + \left(r - q - \\frac{1}{2}\sigma^2\\right)\\tau}{\sigma\sqrt{\tau}} = d_1 - \sigma\sqrt{\\tau}
 
     Parameters
     ----------
@@ -81,7 +87,7 @@ def price_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
     """Fair value of an European call option.
 
     .. math::
-        Se^{-q \\tau}\Phi(d_1) - e^{-r \\tau} K\Phi(d_2)
+        c = Se^{-q \\tau}\Phi(d_1) - e^{-r \\tau} K\Phi(d_2)
 
     Parameters
     ----------
@@ -109,6 +115,9 @@ def price_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
 def price_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Fair value of an European put option.
 
+    .. math::
+        p = e^{-r \\tau} K\Phi(-d_2) -  Se^{-q \\tau}\Phi(-d_1)
+
     Parameters
     ----------
     strike : float, optional
@@ -135,6 +144,9 @@ def price_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
 def delta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Delta of an European call option.
 
+    .. math::
+        \Delta(call) = e^{-q \tau} \Phi(d_1)
+
     Parameters
     ----------
     strike : float, optional
@@ -159,6 +171,9 @@ def delta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
 
 def delta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Delta of an European put option.
+
+    .. math::
+        \Delta(put) = -e^{-q \tau} \Phi(-d_1)
 
     Parameters
     ----------
@@ -185,6 +200,9 @@ def delta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
 def vega(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Vega of an European call/put option.
 
+    .. math::
+        \mathcal{V} = S e^{-q \\tau} \\varphi(d_1) \sqrt{\\tau} = K e^{-r \\tau} \\varphi(d_2) \sqrt{\\tau}
+
     Parameters
     ----------
     strike : float, optional
@@ -210,6 +228,9 @@ def vega(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.
 def gamma(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Gamma of an European call/put option.
 
+    .. math::
+        \Gamma = e^{-q \\tau} \\frac{\\varphi(d_1)}{S\sigma\sqrt{\\tau}} = K e^{-r \\tau} \\frac{\\varphi(d_2)}{S^2\sigma\sqrt{\\tau}}
+
     Parameters
     ----------
     strike : float, optional
@@ -233,7 +254,10 @@ def gamma(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0
     return np.exp(-dvd * time) * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) / spot / (vol * np.sqrt(time))
 
 def theta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
-    """Theta of an European call option.
+    """Theta(call) of an European call option.
+
+    .. math::
+        \Theta = e^{-q \\tau} \\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} - rKe^{-r \\tau}\Phi(d_2) + qSe^{-q \\tau}\Phi(d_1)
 
     Parameters
     ----------
@@ -262,6 +286,9 @@ def theta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
 def theta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Theta of an European put option.
 
+    .. math::
+        \Theta(put) = e^{-q \\tau}\\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} + rKe^{-r \\tau}\Phi(-d_2) - qSe^{-q \\tau}\Phi(-d_1)
+
     Parameters
     ----------
     strike : float, optional
@@ -289,6 +316,9 @@ def theta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
 def rho_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Rho of an European call option.
 
+    .. math::
+        \Rho(call) = K \\tau e^{-r \\tau}\Phi(d_2)
+
     Parameters
     ----------
     strike : float, optional
@@ -313,6 +343,9 @@ def rho_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float 
 
 def rho_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
     """Rho of an European put option.
+
+    .. math::
+        \Rho(put) = -K \\tau e^{-r \\tau}\Phi(-d_2)
 
     Parameters
     ----------
