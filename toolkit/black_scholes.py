@@ -31,7 +31,7 @@ def d1(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05
     """Probability of an European option being exercised.
 
     .. math::
-        d_1 &= \\frac{\ln(S/K) + \left(r - q + \\frac{1}{2}\sigma^2\\right)\\tau}{\sigma\sqrt{\\tau}}      
+        d_1 = \\frac{\ln(S/K) + \left(r - q + \\frac{1}{2}\sigma^2\\right)\\tau}{\sigma\sqrt{\\tau}}      
 
     Parameters
     ----------
@@ -145,7 +145,7 @@ def delta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
     """Delta of an European call option.
 
     .. math::
-        \Delta(call) = e^{-q \tau} \Phi(d_1)
+        \Delta_call = e^{-q \\tau} \Phi(d_1)
 
     Parameters
     ----------
@@ -173,7 +173,7 @@ def delta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
     """Delta of an European put option.
 
     .. math::
-        \Delta(put) = -e^{-q \tau} \Phi(-d_1)
+        \Delta_put = -e^{-q \\tau} \Phi(-d_1)
 
     Parameters
     ----------
@@ -257,7 +257,7 @@ def theta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
     """Theta(call) of an European call option.
 
     .. math::
-        \Theta = e^{-q \\tau} \\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} - rKe^{-r \\tau}\Phi(d_2) + qSe^{-q \\tau}\Phi(d_1)
+        \Theta_call = e^{-q \\tau} \\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} - rKe^{-r \\tau}\Phi(d_2) + qSe^{-q \\tau}\Phi(d_1)
 
     Parameters
     ----------
@@ -287,7 +287,7 @@ def theta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
     """Theta of an European put option.
 
     .. math::
-        \Theta(put) = e^{-q \\tau}\\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} + rKe^{-r \\tau}\Phi(-d_2) - qSe^{-q \\tau}\Phi(-d_1)
+        \Theta_put = e^{-q \\tau}\\frac{S \\varphi(d_1) \sigma}{2 \sqrt{\\tau}} + rKe^{-r \\tau}\Phi(-d_2) - qSe^{-q \\tau}\Phi(-d_1)
 
     Parameters
     ----------
@@ -317,7 +317,7 @@ def rho_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float 
     """Rho of an European call option.
 
     .. math::
-        \Rho(call) = K \\tau e^{-r \\tau}\Phi(d_2)
+        \rho_call = K \\tau e^{-r \\tau}\Phi(d_2)
 
     Parameters
     ----------
@@ -345,7 +345,7 @@ def rho_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float =
     """Rho of an European put option.
 
     .. math::
-        \Rho(put) = -K \\tau e^{-r \\tau}\Phi(-d_2)
+        \rho_put = -K \\tau e^{-r \\tau}\Phi(-d_2)
 
     Parameters
     ----------
