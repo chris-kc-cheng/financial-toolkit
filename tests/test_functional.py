@@ -39,11 +39,11 @@ class TestFunctional(unittest.TestCase):
 
     def test_decorator(self):        
         
-        @ftk.functional.requireReturn
+        @ftk.functional.require_return
         def rfunc(x):
             return x
         
-        @ftk.functional.requirePrice
+        @ftk.functional.require_price
         def pfunc(x):
             return x
         

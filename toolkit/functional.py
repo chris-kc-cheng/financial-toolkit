@@ -11,14 +11,8 @@ import pandas as pd
 import statsmodels.api as sm
 
 # Constant used for annualizing returns and volatilities
-PERIODICITY = {
-    'D': 365,
-    'B': 252,
-    'W': 52,
-    'M': 12,
-    'Q': 4,
-    'A': 1
-}
+PERIODICITY = {"D": 365, "B": 252, "W": 52, "M": 12, "Q": 4, "A": 1}
+
 
 def periodicity(timeseries: pd.Series | pd.DataFrame) -> int:
     """Get the number of periods that make up a year.
@@ -39,7 +33,7 @@ def periodicity(timeseries: pd.Series | pd.DataFrame) -> int:
 def price_to_return(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     freq = timeseries.index.freqstr
     s = timeseries.pct_change(fill_method=None)
-    s.index = timeseries.index.to_period('D' if freq == 'B' else freq)
+    s.index = timeseries.index.to_period("D" if freq == "B" else freq)
     return s.iloc[1:]
 
 
@@ -48,17 +42,27 @@ def return_to_price(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.Data
         s = pd.concat([pd.Series([0]), timeseries])
     else:
         s = pd.concat(
-            [pd.DataFrame(np.zeros((1, timeseries.shape[1])), columns=timeseries.columns), timeseries])
+            [
+                pd.DataFrame(
+                    np.zeros((1, timeseries.shape[1])), columns=timeseries.columns
+                ),
+                timeseries,
+            ]
+        )
     s.index = pd.date_range(
-        end=timeseries.index[-1].to_timestamp(how='e').date(), periods=len(timeseries.index) + 1, freq=timeseries.index.freq)
+        end=timeseries.index[-1].to_timestamp(how="e").date(),
+        periods=len(timeseries.index) + 1,
+        freq=timeseries.index.freq,
+    )
     return (s + 1).cumprod()
+
 
 ##############
 # Decorators #
 ##############
 
 
-def requireReturn(func):
+def require_return(func):
     """Decorator that convert prices to returns if Index is DatetimeIndex
 
     Parameters
@@ -71,17 +75,19 @@ def requireReturn(func):
     _type_
         _description_
     """
+
     @wraps(func)
     def wrapper(pre, *args, **kwargs):
         post = pre
         if isinstance(pre.index, pd.DatetimeIndex):
             post = price_to_return(pre)
         return func(post, *args, **kwargs)
+
     wrapper.__doc__ = func.__doc__
     return wrapper
 
 
-def requirePrice(func):
+def require_price(func):
     """Decorator that convert returns to prices if Index is PeriodIndex
 
     Parameters
@@ -94,17 +100,19 @@ def requirePrice(func):
     _type_
         _description_
     """
+
     @wraps(func)
     def wrapper(pre, *args, **kwargs):
         post = pre
         if isinstance(pre.index, pd.PeriodIndex):
             post = return_to_price(pre)
         return func(post, *args, **kwargs)
+
     wrapper.__doc__ = func.__doc__
     return wrapper
 
 
-def requireBenchmark(func):
+def require_benchmark(func):
     """Decorator that convert benchmark values to returns if Index is
     DatetimeIndex
 
@@ -118,16 +126,20 @@ def requireBenchmark(func):
     _type_
         _description_
     """
+
     @wraps(func)
     def wrapper(x, pre, *args, **kwargs):
         post = pre
         if isinstance(pre.index, pd.DatetimeIndex):
             post = price_to_return(pre)
         return func(x, post, *args, **kwargs)
+
     return wrapper
 
 
-def convertFX(timeseries: pd.Series | pd.DataFrame, foreign: pd.Series, domestic: pd.Series) -> pd.Series | pd.DataFrame:
+def convertFX(
+    timeseries: pd.Series | pd.DataFrame, foreign: pd.Series, domestic: pd.Series
+) -> pd.Series | pd.DataFrame:
     """Convert the time series from foreign currency to domestic currency.
 
     Note
@@ -150,7 +162,12 @@ def convertFX(timeseries: pd.Series | pd.DataFrame, foreign: pd.Series, domestic
     pd.Series | pd.DataFrame
         Time series of the prices
     """
-    if type(timeseries.index) == type(foreign.index) and type(timeseries.index) == type(domestic.index) and periodicity(timeseries) <= periodicity(foreign) and periodicity(timeseries) <= periodicity(domestic):
+    if (
+        type(timeseries.index) == type(foreign.index)
+        and type(timeseries.index) == type(domestic.index)
+        and periodicity(timeseries) <= periodicity(foreign)
+        and periodicity(timeseries) <= periodicity(domestic)
+    ):
         if isinstance(timeseries.index, pd.DatetimeIndex):
             # Price
             # If no FX is quoted on a particular day, filled with the last quoted price
@@ -159,14 +176,20 @@ def convertFX(timeseries: pd.Series | pd.DataFrame, foreign: pd.Series, domestic
             return timeseries.div(_fc, axis=0).mul(_lc, axis=0)
         else:
             # Return
-            return convertFX(return_to_price(timeseries), return_to_price(foreign), return_to_price(domestic))
+            return convertFX(
+                return_to_price(timeseries),
+                return_to_price(foreign),
+                return_to_price(domestic),
+            )
     else:
         # Error converting, returning original
         return timeseries
 
 
-@requireReturn
-def compound_return(timeseries: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
+@require_return
+def compound_return(
+    timeseries: pd.Series | pd.DataFrame, annualize=False
+) -> float | pd.Series:
     """Compound return of time series
 
     Parameters
@@ -187,31 +210,45 @@ def compound_return(timeseries: pd.Series | pd.DataFrame, annualize=False) -> fl
     return r - 1
 
 
-@requireReturn
+@require_return
 def arithmetic_mean(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Arithmetic mean of returns.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        _description_
+
+    Returns
+    -------
+    float | pd.Series
+        _description_
+    """
     return timeseries.mean()
 
 
-@requireReturn
+@require_return
 def geometric_mean(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (compound_return(timeseries, False) + 1) ** (1 / len(timeseries)) - 1
 
 
-@requireReturn
+@require_return
 def mean_abs_dev(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     mean = timeseries.mean()
     return np.absolute(timeseries - mean).sum() / len(timeseries)
 
 
-@requireReturn
-def variance(timeseries: pd.Series | pd.DataFrame, annualize=False) -> float | pd.Series:
+@require_return
+def variance(
+    timeseries: pd.Series | pd.DataFrame, annualize=False
+) -> float | pd.Series:
     v = timeseries.var()
     if annualize:
         v *= periodicity(timeseries)
     return v
 
 
-@requireReturn
+@require_return
 def volatility(timeseries: pd.Series | pd.DataFrame, annualize=False):
     # Degree of freedom is N-1 for Pandas but N for NumPy
     v = timeseries.std()
@@ -220,19 +257,19 @@ def volatility(timeseries: pd.Series | pd.DataFrame, annualize=False):
     return v
 
 
-@requireReturn
+@require_return
 def skew(timeseries: pd.Series | pd.DataFrame):
     # Degree of freedom is N-1 for Pandas but N for NumPy
     return timeseries.skew()
 
 
-@requireReturn
+@require_return
 def kurt(timeseries: pd.Series | pd.DataFrame):
     # Excess kurtosis, SciPy does not correct for bias by default
     return timeseries.kurt()
 
 
-@requireReturn
+@require_return
 def covariance(timeseries: pd.DataFrame, annualize=False) -> pd.DataFrame:
     cov = timeseries.cov()
     if annualize:
@@ -240,17 +277,22 @@ def covariance(timeseries: pd.DataFrame, annualize=False) -> pd.DataFrame:
     return cov
 
 
-@requireReturn
+@require_return
 def correlation(timeseries: pd.DataFrame) -> pd.DataFrame:
     return timeseries.corr()
 
 
-@requireReturn
-def sharpe(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, annualize=True) -> float | pd.Series:
+@require_return
+def sharpe(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, annualize=True
+) -> float | pd.Series:
     rate = rfr_annualized
     if not annualize:
         rate = (1 + rfr_annualized) ** (1 / periodicity(timeseries))
-    return (compound_return(timeseries, annualize) - rate) / volatility(timeseries, annualize)
+    return (compound_return(timeseries, annualize) - rate) / volatility(
+        timeseries, annualize
+    )
+
 
 # FIXME not tested @requirePrice
 
@@ -259,7 +301,7 @@ def max_upturn(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (timeseries / timeseries.cummin()).max()
 
 
-@requirePrice
+@require_price
 def worst_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     """Get the worst drawdown of time series
 
@@ -272,7 +314,7 @@ def worst_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return (timeseries / timeseries.cummax()).min() - 1
 
 
-@requirePrice
+@require_price
 def all_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     # Drawdown must be calculated for each series individually
     if isinstance(timeseries, pd.DataFrame):
@@ -284,7 +326,7 @@ def all_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return dd[dd < 0].sort_values()
 
 
-@requireReturn
+@require_return
 def avg_annual_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return timeseries.groupby(timeseries.index.year).aggregate(worst_drawdown).mean()
 
@@ -296,23 +338,40 @@ def avg_drawdown(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> float | pd
     return all_drawdown(timeseries)[:d].mean()
 
 
-def calmar(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
-    return (compound_return(timeseries, True) - rfr_annualized) / -worst_drawdown(timeseries)
+def calmar(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
+) -> float | pd.Series:
+    return (compound_return(timeseries, True) - rfr_annualized) / -worst_drawdown(
+        timeseries
+    )
 
 
 def sterling(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
-    return compound_return(timeseries, True) / np.absolute(avg_annual_drawdown(timeseries) - 0.1)
+    return compound_return(timeseries, True) / np.absolute(
+        avg_annual_drawdown(timeseries) - 0.1
+    )
 
 
-def sterling_modified(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3) -> float | pd.Series:
-    return (compound_return(timeseries, True) - rfr_annualized) / np.absolute(avg_drawdown(timeseries, d))
+def sterling_modified(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3
+) -> float | pd.Series:
+    return (compound_return(timeseries, True) - rfr_annualized) / np.absolute(
+        avg_drawdown(timeseries, d)
+    )
 
 
-def sterling_calmar(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
-    return (compound_return(timeseries, True) - rfr_annualized) / -avg_annual_drawdown(timeseries)
+def sterling_calmar(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
+) -> float | pd.Series:
+    return (compound_return(timeseries, True) - rfr_annualized) / -avg_annual_drawdown(
+        timeseries
+    )
 
-@requireReturn
-def drawdown_deviation(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> float | pd.Series:
+
+@require_return
+def drawdown_deviation(
+    timeseries: pd.Series | pd.DataFrame, d: int = 3
+) -> float | pd.Series:
     """Drawdown deviation measures the standard deviation of individual
     drawdowns. This is used the denominator of the Modified Burke ratio.
 
@@ -333,7 +392,9 @@ def drawdown_deviation(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> floa
     return -np.sqrt((all_drawdown(timeseries)[:d] ** 2).sum() / (len(timeseries)))
 
 
-def burke_modified(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3) -> float | pd.Series:
+def burke_modified(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3
+) -> float | pd.Series:
     """Modified Burke ratio is a Sharpe-like ratio but uses drawdown deviation
     in the denominator.
 
@@ -351,15 +412,17 @@ def burke_modified(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float =
     float | pd.Series
         _description_
     """
-    return (compound_return(timeseries, True) - rfr_annualized) / -drawdown_deviation(timeseries, d)
+    return (compound_return(timeseries, True) - rfr_annualized) / -drawdown_deviation(
+        timeseries, d
+    )
 
 
-@requirePrice
+@require_price
 def underwater(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     return timeseries / timeseries.cummax() - 1
 
 
-@requireReturn
+@require_return
 # Positive
 def ulcer_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     """The ulcer index is similar to drawdown deviation but also take into
@@ -378,7 +441,7 @@ def ulcer_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return np.sqrt((underwater(timeseries) ** 2).sum() / len(timeseries))
 
 
-@requireReturn
+@require_return
 # Positive
 def pain_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     """The pain index is similar to the ulcer index but use absolute value of
@@ -397,7 +460,9 @@ def pain_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return np.absolute(underwater(timeseries)).sum() / len(timeseries)
 
 
-def martin(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
+def martin(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
+) -> float | pd.Series:
     """Martin ratio is a Sharpe-like ratio but uses the ulcer index in the
     denominator.
 
@@ -415,10 +480,14 @@ def martin(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> f
     float | pd.Series
         _description_
     """
-    return (compound_return(timeseries, True) - rfr_annualized) / ulcer_index(timeseries)
+    return (compound_return(timeseries, True) - rfr_annualized) / ulcer_index(
+        timeseries
+    )
 
 
-def pain(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> float | pd.Series:
+def pain(
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
+) -> float | pd.Series:
     """The pain ratio is a Sharpe-like ratio but uses the pain index in the
     denominator.
 
@@ -437,18 +506,27 @@ def pain(timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0) -> flo
     return (compound_return(timeseries, True) - rfr_annualized) / pain_index(timeseries)
 
 
-@requireReturn
-def downside_potential(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
+@require_return
+def downside_potential(
+    timeseries: pd.Series | pd.DataFrame, mar: float = 0
+) -> float | pd.Series:
     return (mar - timeseries[timeseries < mar]).sum() / len(timeseries)
 
 
-@requireReturn
-def upside_potential(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
+@require_return
+def upside_potential(
+    timeseries: pd.Series | pd.DataFrame, mar: float = 0
+) -> float | pd.Series:
     return (timeseries[timeseries > mar] - mar).sum() / len(timeseries)
 
 
-@requireReturn
-def downside_risk(timeseries: pd.Series | pd.DataFrame, mar: float = 0, annualize: bool = False, ddof: int = 0) -> float | pd.Series:
+@require_return
+def downside_risk(
+    timeseries: pd.Series | pd.DataFrame,
+    mar: float = 0,
+    annualize: bool = False,
+    ddof: int = 0,
+) -> float | pd.Series:
     """Downside Risk measures the variability of underperformance below a
     minimum target return. It is the denominator of a Sortino ratio.
 
@@ -471,14 +549,21 @@ def downside_risk(timeseries: pd.Series | pd.DataFrame, mar: float = 0, annualiz
     float | pd.Series
         _description_
     """
-    dr = np.sqrt(((mar - timeseries[timeseries < mar]) ** 2).sum() / (len(timeseries) - ddof))
+    dr = np.sqrt(
+        ((mar - timeseries[timeseries < mar]) ** 2).sum() / (len(timeseries) - ddof)
+    )
     if annualize:
         dr *= np.sqrt(periodicity(timeseries))
     return dr
 
 
-@requireReturn
-def upside_risk(timeseries: pd.Series | pd.DataFrame, mar: float = 0, annualize: bool = False, ddof: int = 0) -> float | pd.Series:
+@require_return
+def upside_risk(
+    timeseries: pd.Series | pd.DataFrame,
+    mar: float = 0,
+    annualize: bool = False,
+    ddof: int = 0,
+) -> float | pd.Series:
     """_summary_
 
     Parameters
@@ -522,16 +607,26 @@ def omega(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float:
     return upside_potential(timeseries, mar) / downside_potential(timeseries, mar)
 
 
-def sortino(timeseries: pd.Series | pd.DataFrame, mar: float = 0, ddof: int = 0) -> float | pd.Series:
+def sortino(
+    timeseries: pd.Series | pd.DataFrame, mar: float = 0, ddof: int = 0
+) -> float | pd.Series:
     ann_mar = (1 + mar) ** periodicity(timeseries) - 1
-    return (compound_return(timeseries, annualize=True) - ann_mar) / downside_risk(timeseries, mar, annualize=True, ddof=ddof)
+    return (compound_return(timeseries, annualize=True) - ann_mar) / downside_risk(
+        timeseries, mar, annualize=True, ddof=ddof
+    )
 
 
-def upside_potential_ratio(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
-    return upside_potential(timeseries, mar) / downside_risk(timeseries, mar, annualize=True)
+def upside_potential_ratio(
+    timeseries: pd.Series | pd.DataFrame, mar: float = 0
+) -> float | pd.Series:
+    return upside_potential(timeseries, mar) / downside_risk(
+        timeseries, mar, annualize=True
+    )
 
 
-def variability_skewness(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float | pd.Series:
+def variability_skewness(
+    timeseries: pd.Series | pd.DataFrame, mar: float = 0
+) -> float | pd.Series:
     """Variability skewness is the ratio of Upside risk compared to Downside
     risk.
 
@@ -549,37 +644,39 @@ def variability_skewness(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -
     """
     return upside_risk(timeseries, mar) / downside_risk(timeseries, mar)
 
+
 # Additional
 
 
-@requireReturn
+@require_return
 def best_period(timeseries: pd.Series) -> float:
     return timeseries.max()
 
 
-@requireReturn
+@require_return
 def worst_period(timeseries: pd.Series) -> float:
     return timeseries.min()
 
 
-@requireReturn
+@require_return
 def avg_pos(timeseries: pd.Series) -> float:
     return timeseries[timeseries >= 0].mean()
 
 
-@requireReturn
+@require_return
 def avg_neg(timeseries: pd.Series) -> float:
     return timeseries[timeseries < 0].mean()
 
 
-@requireReturn
+@require_return
 def vol_pos(timeseries: pd.Series) -> float:
     return timeseries[timeseries >= 0].std()
 
 
-@requireReturn
+@require_return
 def vol_neg(timeseries: pd.Series) -> float:
     return timeseries[timeseries < 0].std()
+
 
 #########################
 # Relative to benchmark #
@@ -588,27 +685,35 @@ def vol_neg(timeseries: pd.Series) -> float:
 # If risk-free rate is yet to substract from s, you must supply the rfr_periodic
 
 
-@requireReturn
-@requireBenchmark
+@require_return
+@require_benchmark
 # f, b -> Series of shape (3,) (float, float, float)
 # f, bb -> Series of shape (3,) (float, Series, float)
 # ff, b -> DataFrame of shape (3, n)
 # ff, bb -> DataFrame of shape (3, n), the middle row is Series
 # where n is the number of assets (column) in s
-def regress(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0) -> pd.Series | pd.DataFrame:
+def regress(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    rfr_periodic: float | pd.Series = 0,
+) -> pd.Series | pd.DataFrame:
     if isinstance(timeseries, pd.DataFrame):
         return timeseries.aggregate(lambda x: regress(x, benchmark, rfr_periodic))
     result = sm.OLS(timeseries - rfr_periodic, sm.add_constant(benchmark)).fit()
     alpha = result.params.iloc[0]
-    betas = result.params.iloc[1:].squeeze() # Series
+    betas = result.params.iloc[1:].squeeze()  # Series
     r2 = result.rsquared
     r2adj = result.rsquared_adj
-    return pd.Series([alpha, betas, r2, r2adj], index=['alpha', 'betas', 'r2', 'r2adj'])
+    return pd.Series([alpha, betas, r2, r2adj], index=["alpha", "betas", "r2", "r2adj"])
 
 
-@requireReturn
-@requireBenchmark
-def beta(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+@require_return
+@require_benchmark
+def beta(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    rfr_periodic: float | pd.Series = 0,
+) -> float | pd.Series | pd.DataFrame:
     # series & series -> float
     # series & benchmark(, m) -> Series(m,)
     # fund(, k) & series -> Series(, k)
@@ -617,9 +722,14 @@ def beta(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFra
     return regress(timeseries, benchmark, rfr_periodic).iloc[1]
 
 
-@requireReturn
-@requireBenchmark
-def alpha(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0, annualize=False) -> float | pd.Series | pd.DataFrame:
+@require_return
+@require_benchmark
+def alpha(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    rfr_periodic: float | pd.Series = 0,
+    annualize=False,
+) -> float | pd.Series | pd.DataFrame:
     a = regress(timeseries, benchmark, rfr_periodic).iloc[0]
     if annualize:
         # Sharpe's definition
@@ -627,152 +737,211 @@ def alpha(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFr
     return a
 
 
-@requireReturn
-@requireBenchmark
+@require_return
+@require_benchmark
 # FIXME: add test case
-def rsquared(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0, adjusted: bool = False) -> float | pd.Series | pd.DataFrame:
+def rsquared(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    rfr_periodic: float | pd.Series = 0,
+    adjusted: bool = False,
+) -> float | pd.Series | pd.DataFrame:
     result = regress(timeseries, benchmark, rfr_periodic)
     return result.iloc[3] if adjusted else result.iloc[2]
 
 
-@requireReturn
-@requireBenchmark
+@require_return
+@require_benchmark
 # Unlike pure beta, it doens't make sense to calcualte bull/bear beta on multiple indices, so benchmark must not be a DataFrame
-def bull_beta(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+def bull_beta(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series,
+    rfr_periodic: float | pd.Series = 0,
+) -> float | pd.Series | pd.DataFrame:
     bull = benchmark > rfr_periodic
-    return beta(timeseries[bull].subtract(rfr_periodic[bull], axis=0), benchmark[bull].subtract(rfr_periodic[bull], axis=0))
+    return beta(
+        timeseries[bull].subtract(rfr_periodic[bull], axis=0),
+        benchmark[bull].subtract(rfr_periodic[bull], axis=0),
+    )
 
 
-@requireReturn
-@requireBenchmark
-def bear_beta(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
+@require_return
+@require_benchmark
+def bear_beta(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series,
+    rfr_periodic: float | pd.Series = 0,
+) -> float | pd.Series | pd.DataFrame:
     bear = benchmark < rfr_periodic
-    return beta(timeseries[bear].subtract(rfr_periodic[bear], axis=0), benchmark[bear].subtract(rfr_periodic[bear], axis=0))
+    return beta(
+        timeseries[bear].subtract(rfr_periodic[bear], axis=0),
+        benchmark[bear].subtract(rfr_periodic[bear], axis=0),
+    )
 
 
-def beta_timing_ratio(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, rfr_periodic: float | pd.Series = 0) -> float | pd.Series | pd.DataFrame:
-    return bull_beta(timeseries, benchmark, rfr_periodic) / bear_beta(timeseries, benchmark, rfr_periodic)
+def beta_timing_ratio(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    rfr_periodic: float | pd.Series = 0,
+) -> float | pd.Series | pd.DataFrame:
+    return bull_beta(timeseries, benchmark, rfr_periodic) / bear_beta(
+        timeseries, benchmark, rfr_periodic
+    )
+
 
 # Only one benchmark
 
 
-def treynor(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic: float | pd.Series = 0, annualize=True) -> float | pd.Series:
+def treynor(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series,
+    rfr_periodic: float | pd.Series = 0,
+    annualize=True,
+) -> float | pd.Series:
     rfr_annualized = compound_return(rfr_periodic, annualize=True)
-    return (compound_return(timeseries, annualize) - rfr_annualized) / beta(timeseries, benchmark, rfr_periodic)
+    return (compound_return(timeseries, annualize) - rfr_annualized) / beta(
+        timeseries, benchmark, rfr_periodic
+    )
 
 
-@requireReturn
-@requireBenchmark
-def tracking_error(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize: bool = False) -> float | pd.Series:
+@require_return
+@require_benchmark
+def tracking_error(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    annualize: bool = False,
+) -> float | pd.Series:
     return volatility(timeseries.subtract(benchmark, axis=0), annualize)
 
-@requireReturn
-@requireBenchmark
-def active_return(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame, annualize=True) -> float | pd.Series:
+
+@require_return
+@require_benchmark
+def active_return(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    annualize=True,
+) -> float | pd.Series:
     # Arithmetic
     return compound_return(timeseries, True) - compound_return(benchmark, True)
 
-@requireReturn
-@requireBenchmark
-def information_ratio(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame) -> float | pd.Series:
+
+@require_return
+@require_benchmark
+def information_ratio(
+    timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame
+) -> float | pd.Series:
     # Arithmetic
-    return active_return(timeseries, benchmark, True) / tracking_error(timeseries, benchmark, True)
+    return active_return(timeseries, benchmark, True) / tracking_error(
+        timeseries, benchmark, True
+    )
 
 
-@requireReturn
-@requireBenchmark
-def summary(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series, rfr_periodic, mar: float = 0):
-
+@require_return
+@require_benchmark
+def summary(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series,
+    rfr_periodic,
+    mar: float = 0,
+):
     rfr_annualized = compound_return(rfr_periodic, annualize=True)
     s_rfr = timeseries.subtract(rfr_periodic, axis=0)
     mkt_rfr = benchmark - rfr_periodic
 
     sd = {
-            'Number of Period': len(timeseries),
-            'Frequency': timeseries.index.freqstr,
-            'Total Return': compound_return(timeseries),
-            'Periodic Mean Return': arithmetic_mean(timeseries),
-            'Periodic Geometric Mean': geometric_mean(timeseries),
-            'Annualized Return': compound_return(timeseries, annualize=True),
-            'Best Period': best_period(timeseries),
-            'Worst Period': worst_period(timeseries),
-            'Average Positive Period': avg_pos(timeseries),
-            'Average Negative Period': avg_neg(timeseries),
-            'Mean Absolute Deviation': mean_abs_dev(timeseries),
-            'Variance': variance(timeseries),
-            'Period Volatility': volatility(timeseries),
-            'Period Volatility of Positive Return': vol_pos(timeseries),
-            'Period Volatility of Negative Return': vol_neg(timeseries),
-            'Annualized Volatility': volatility(timeseries, annualize=True),
-            f'Sharpe ({rfr_annualized:.2%})': sharpe(timeseries, rfr_annualized),
-            'Skewness': skew(timeseries),
-            'Excess Kurtosis': kurt(timeseries),
-            # The following are not tested
-            'Normal (1%)': is_normal(timeseries, 0.01),
-            'VaR Historical (95%)': var_historical(timeseries),
-            'VaR Gaussian (95%)': var_normal(timeseries),
-            'VaR Modified (95%)': var_modified(timeseries),
-            'CVaR Historical (95%)': cvar_historical(timeseries),
-            'CVaR Gaussian (95%)': cvar_normal(timeseries),
-
-            # Drawdown
-            'Worst Drawdown': worst_drawdown(timeseries),
-            'Calmar': calmar(timeseries, rfr_annualized=rfr_annualized),
-            'Average Drawdown': avg_drawdown(timeseries, d=3),
-            'Sterling Original': sterling(timeseries),  # Not tested
-            'Sterling Modified': sterling_modified(timeseries, rfr_annualized=rfr_annualized, d=3),
-            'Sterling-Calmar': sterling_calmar(timeseries, rfr_annualized=rfr_annualized),
-            'Drawdown Deviation': drawdown_deviation(timeseries, d=3),
-            'Modified Burke': burke_modified(timeseries, rfr_annualized=rfr_annualized, d=3),
-            'Average Annual Drawdown': avg_annual_drawdown(timeseries),          
-            'Pain Index': pain_index(timeseries),
-            'Pain Ratio': pain(timeseries, rfr_annualized),
-            'Ulcer Index': ulcer_index(timeseries),
-            'Martin Ratio': martin(timeseries, rfr_annualized),
-
-            # Partial
-            'Downside Potential': downside_potential(timeseries, mar=mar),
-            'Downside Risk (Periodic)': downside_risk(timeseries, mar=mar, ddof=1),
-            'Downside Risk (Annualized)': downside_risk(timeseries, mar=mar, annualize=True, ddof=1),
-            'Upside Potential': upside_potential(timeseries, mar=mar),
-            'Upside Risk (Periodic)': upside_risk(timeseries, mar=mar, ddof=1),
-            'Upside Risk (Annualized)': upside_risk(timeseries, mar=mar, annualize=True, ddof=1),
-            'Omega Ratio': omega(timeseries, mar=mar),
-            'Upside Potential Ratio': upside_potential_ratio(timeseries, mar),
-            'Variability Skewness': variability_skewness(timeseries, mar),
-            'Sortino Ratio': sortino(timeseries, mar=mar, ddof=1),
-
-            # Relative
-            'Tracking Error': tracking_error(timeseries, benchmark),
-            'Annualized Tracking Error': tracking_error(timeseries, benchmark, True),
-            'Annualized Active Return': active_return(timeseries, benchmark, True),
-            'Annualized Information Ratio': information_ratio(timeseries, benchmark),
-
-            # Regression
-            'Beta': beta(timeseries, mkt_rfr, rfr_periodic),
-            'Alpha (Annualized)': alpha(timeseries, mkt_rfr, rfr_periodic, annualize=True),
-            'Correlation': correlation(pd.concat([s_rfr, mkt_rfr], axis=1)).iloc[-1, :-1].squeeze(),
-            'R-Squared': rsquared(timeseries, mkt_rfr, rfr_periodic),
-            'Bull Beta': bull_beta(timeseries, benchmark, rfr_periodic), # Bull/Bear/Timing not tested
-            'Bear Beta': bear_beta(timeseries, benchmark, rfr_periodic),
-            'Beta Timing Ratio': beta_timing_ratio(timeseries, benchmark, rfr_periodic),
-            'Treynor Ratio': treynor(timeseries, benchmark, rfr_periodic),
-            'Up Capture': up_capture(timeseries, benchmark),
-            'Down Capture': down_capture(timeseries, benchmark)
-        }
+        "Number of Period": len(timeseries),
+        "Frequency": timeseries.index.freqstr,
+        "Total Return": compound_return(timeseries),
+        "Periodic Mean Return": arithmetic_mean(timeseries),
+        "Periodic Geometric Mean": geometric_mean(timeseries),
+        "Annualized Return": compound_return(timeseries, annualize=True),
+        "Best Period": best_period(timeseries),
+        "Worst Period": worst_period(timeseries),
+        "Average Positive Period": avg_pos(timeseries),
+        "Average Negative Period": avg_neg(timeseries),
+        "Mean Absolute Deviation": mean_abs_dev(timeseries),
+        "Variance": variance(timeseries),
+        "Period Volatility": volatility(timeseries),
+        "Period Volatility of Positive Return": vol_pos(timeseries),
+        "Period Volatility of Negative Return": vol_neg(timeseries),
+        "Annualized Volatility": volatility(timeseries, annualize=True),
+        f"Sharpe ({rfr_annualized:.2%})": sharpe(timeseries, rfr_annualized),
+        "Skewness": skew(timeseries),
+        "Excess Kurtosis": kurt(timeseries),
+        # The following are not tested
+        "Normal (1%)": is_normal(timeseries, 0.01),
+        "VaR Historical (95%)": var_historical(timeseries),
+        "VaR Gaussian (95%)": var_normal(timeseries),
+        "VaR Modified (95%)": var_modified(timeseries),
+        "CVaR Historical (95%)": cvar_historical(timeseries),
+        "CVaR Gaussian (95%)": cvar_normal(timeseries),
+        # Drawdown
+        "Worst Drawdown": worst_drawdown(timeseries),
+        "Calmar": calmar(timeseries, rfr_annualized=rfr_annualized),
+        "Average Drawdown": avg_drawdown(timeseries, d=3),
+        "Sterling Original": sterling(timeseries),  # Not tested
+        "Sterling Modified": sterling_modified(
+            timeseries, rfr_annualized=rfr_annualized, d=3
+        ),
+        "Sterling-Calmar": sterling_calmar(timeseries, rfr_annualized=rfr_annualized),
+        "Drawdown Deviation": drawdown_deviation(timeseries, d=3),
+        "Modified Burke": burke_modified(
+            timeseries, rfr_annualized=rfr_annualized, d=3
+        ),
+        "Average Annual Drawdown": avg_annual_drawdown(timeseries),
+        "Pain Index": pain_index(timeseries),
+        "Pain Ratio": pain(timeseries, rfr_annualized),
+        "Ulcer Index": ulcer_index(timeseries),
+        "Martin Ratio": martin(timeseries, rfr_annualized),
+        # Partial
+        "Downside Potential": downside_potential(timeseries, mar=mar),
+        "Downside Risk (Periodic)": downside_risk(timeseries, mar=mar, ddof=1),
+        "Downside Risk (Annualized)": downside_risk(
+            timeseries, mar=mar, annualize=True, ddof=1
+        ),
+        "Upside Potential": upside_potential(timeseries, mar=mar),
+        "Upside Risk (Periodic)": upside_risk(timeseries, mar=mar, ddof=1),
+        "Upside Risk (Annualized)": upside_risk(
+            timeseries, mar=mar, annualize=True, ddof=1
+        ),
+        "Omega Ratio": omega(timeseries, mar=mar),
+        "Upside Potential Ratio": upside_potential_ratio(timeseries, mar),
+        "Variability Skewness": variability_skewness(timeseries, mar),
+        "Sortino Ratio": sortino(timeseries, mar=mar, ddof=1),
+        # Relative
+        "Tracking Error": tracking_error(timeseries, benchmark),
+        "Annualized Tracking Error": tracking_error(timeseries, benchmark, True),
+        "Annualized Active Return": active_return(timeseries, benchmark, True),
+        "Annualized Information Ratio": information_ratio(timeseries, benchmark),
+        # Regression
+        "Beta": beta(timeseries, mkt_rfr, rfr_periodic),
+        "Alpha (Annualized)": alpha(timeseries, mkt_rfr, rfr_periodic, annualize=True),
+        "Correlation": correlation(pd.concat([s_rfr, mkt_rfr], axis=1))
+        .iloc[-1, :-1]
+        .squeeze(),
+        "R-Squared": rsquared(timeseries, mkt_rfr, rfr_periodic),
+        # Bull/Bear/Timing not tested
+        "Bull Beta": bull_beta(timeseries, benchmark, rfr_periodic),
+        "Bear Beta": bear_beta(timeseries, benchmark, rfr_periodic),
+        "Beta Timing Ratio": beta_timing_ratio(timeseries, benchmark, rfr_periodic),
+        "Treynor Ratio": treynor(timeseries, benchmark, rfr_periodic),
+        "Up Capture": up_capture(timeseries, benchmark),
+        "Down Capture": down_capture(timeseries, benchmark),
+    }
     return sd
+
 
 # TODO:
 # Accept both 5% (Level of significance) or 95% (Confidence Interval)
 
 
-@requireReturn
+@require_return
 def is_normal(timeseries: pd.Series, a: float = 0.01):
     # p-value > z means null hypothesis (normal) cannot be rejected
     return scipy.stats.jarque_bera(timeseries)[1] > a
 
 
-@requireReturn
+@require_return
 def var_historical(timeseries: pd.Series, alpha: float = 0.95) -> float:
     """Historical Value-at-Risk
 
@@ -833,14 +1002,17 @@ def var_modified(timeseries: pd.Series, alpha: float = 0.95) -> float:
     sigma = volatility(timeseries, annualize=False)
     S = skew(timeseries)
     K = kurt(timeseries)
-    t = z + (z ** 2 - 1) * S / 6 \
-        + (z ** 3 - 3 * z) * K / 24 \
-        - (2 * z ** 3 - 5 * z) * S ** 2 / 36
+    t = (
+        z
+        + (z**2 - 1) * S / 6
+        + (z**3 - 3 * z) * K / 24
+        - (2 * z**3 - 5 * z) * S**2 / 36
+    )
     return mu + sigma * t
 
 
 # TODO: Add test case
-@requireReturn
+@require_return
 def cvar_historical(timeseries: pd.Series, alpha: float = 0.05):
     """Historical Conditional Value-at-Risk (CVaR).
 
@@ -859,6 +1031,7 @@ def cvar_historical(timeseries: pd.Series, alpha: float = 0.05):
         CVaR, reported as a negative number
     """
     return timeseries[timeseries < var_historical(timeseries, alpha)].mean()
+
 
 # TODO: Add test case
 
@@ -888,22 +1061,27 @@ def cvar_normal(timeseries: pd.Series, alpha: float = 0.95, annualize=False):
     return mu - sigma * scipy.stats.norm.pdf(scipy.stats.norm.ppf(a)) / a
 
 
-@requireReturn
-@requireBenchmark
-def up_capture(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+@require_return
+@require_benchmark
+def up_capture(
+    timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame
+):
     up = benchmark >= 0
     return compound_return(timeseries[up]) / compound_return(benchmark[up])
 
 
-@requireReturn
-@requireBenchmark
-def down_capture(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+@require_return
+@require_benchmark
+def down_capture(
+    timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame
+):
     down = benchmark < 0
     return compound_return(timeseries[down]) / compound_return(benchmark[down])
 
 
 def carino(r, b):
     return np.where(r == b, 1 / (1 + r), (np.log1p(r) - np.log1p(b)) / (r - b))
+
 
 # TODO:
 #   m2, drawdown table

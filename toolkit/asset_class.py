@@ -4,24 +4,30 @@ from abc import ABC, abstractmethod
 import numpy as np
 import toolkit as ftk
 
+
 class Instrument:
     def __init__(self, name=None):
-        self.name = name if name else 'Unnamed'
-    
+        self.name = name if name else "Unnamed"
+
     def __repr__(self):
         return self.name
+
 
 class Equity(Instrument):
     pass
 
+
 class Currency(Instrument):
     pass
+
 
 class Commodity(Instrument):
     pass
 
+
 class Index(Instrument):
     pass
+
 
 class Derivative(Instrument):
     def __init__(self, underlying: Instrument, name: str = None):
@@ -31,19 +37,22 @@ class Derivative(Instrument):
     def underlying(self):
         return self.underlying
 
+
 class Option(Derivative):
     def __init__(self, underlying: Instrument, strike: float, name: str = None):
         self.underlying = underlying
         self.strike = strike
         super().__init__(name)
-    
+
     def greeks(self, spot, rate, time, vol, dvd):
-        return {'Delta': self.delta(spot, rate, time, vol, dvd),
-                'Gamma': self.gamma(spot, rate, time, vol, dvd),
-                'Vega' : self.vega (spot, rate, time, vol, dvd),
-                'Theta': self.theta(spot, rate, time, vol, dvd),
-                'Rho'  : self.rho  (spot, rate, time, vol, dvd)}
-    
+        return {
+            "Delta": self.delta(spot, rate, time, vol, dvd),
+            "Gamma": self.gamma(spot, rate, time, vol, dvd),
+            "Vega": self.vega(spot, rate, time, vol, dvd),
+            "Theta": self.theta(spot, rate, time, vol, dvd),
+            "Rho": self.rho(spot, rate, time, vol, dvd),
+        }
+
     @abstractmethod
     def moneyness(self, spot):
         pass
@@ -72,13 +81,13 @@ class Option(Derivative):
     def rho(self, spot, rate, time, vol, dvd):
         pass
 
+
 class CallOption(Option):
-    
     def moneyness(self, spot):
         return np.maximum(0, spot - self.strike)
 
-class PutOption(Option):
 
+class PutOption(Option):
     def moneyness(self, spot):
         return np.maximum(0, self.strike - spot)
 
@@ -90,11 +99,12 @@ class EuropeanOption(Option):
     def gamma(self, spot, rate, time, vol, dvd):
         return ftk.gamma(self.strike, spot, rate, time, vol, dvd)
 
+
 class AmericanOption(Option):
     pass
 
-class EuropeanCall(EuropeanOption, CallOption):
 
+class EuropeanCall(EuropeanOption, CallOption):
     def price(self, spot, rate, time, vol, dvd):
         return ftk.price_call(self.strike, spot, rate, time, vol, dvd)
 
@@ -107,22 +117,24 @@ class EuropeanCall(EuropeanOption, CallOption):
     def rho(self, spot, rate, time, vol, dvd):
         return ftk.rho_call(self.strike, spot, rate, time, vol, dvd)
 
-class EuropeanPut(EuropeanOption, PutOption):
 
+class EuropeanPut(EuropeanOption, PutOption):
     def price(self, spot, rate, time, vol, dvd):
         return ftk.price_put(self.strike, spot, rate, time, vol, dvd)
-    
+
     def delta(self, spot, rate, time, vol, dvd):
         return ftk.delta_put(self.strike, spot, rate, time, vol, dvd)
-    
+
     def theta(self, spot, rate, time, vol, dvd):
         return ftk.theta_put(self.strike, spot, rate, time, vol, dvd)
 
     def rho(self, spot, rate, time, vol, dvd):
         return ftk.rho_put(self.strike, spot, rate, time, vol, dvd)
 
+
 class AmericanCall(AmericanOption, CallOption):
     pass
+
 
 class AmericanPut(AmericanOption, PutOption):
     pass

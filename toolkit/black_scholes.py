@@ -61,7 +61,7 @@ def d2(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05
     """Probability of an European option **not** being exercised.
 
     .. math::
-        d_2 = \\frac{\ln(S/K) + (r - q - \\frac{1}{2}\sigma^2)\\tau}{\sigma\sqrt{\tau}} = d_1 - \sigma\sqrt{\\tau}
+        d_2 = \\frac{\ln(S/K) + (r - q - \\frac{1}{2}\sigma^2)\\tau}{\sigma\sqrt{\\tau}} = d_1 - \sigma\sqrt{\\tau}
 
     Parameters
     ----------
