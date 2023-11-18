@@ -7,7 +7,6 @@ from scipy import optimize
 
 def yield_to_maturity(
     price: float,
-    face: float = 100.0,
     coupon: float = 0.0,
     ttm: float = 1.0,
     freq: int = 2,
@@ -18,12 +17,10 @@ def yield_to_maturity(
     ----------
     price : float
         Market price of the bond
-    face : float, optional
-        Face value, by default 100.0
     coupon : float, optional
-        Annual coupon in dollar terms, by default 0.0 (i.e. zero coupon)
+        Annual coupon rate, by default 0.0 (i.e. zero coupon)
     ttm : float, optional
-        Time to maturity, by default 1.0 (i.e. one year)
+        Time to maturity in year, by default 1.0 (i.e. one year)
     freq : int, optional
         Coupon frequency, by default 2 (i.e. semi-annual coupon)
 
@@ -32,24 +29,31 @@ def yield_to_maturity(
     float
         Yield to maturity
     """
-    return optimize.newton(lambda x: bond_price(x, face, coupon, ttm, freq) - price, 0)
+    return optimize.newton(lambda x: bond_price(x, coupon, ttm, freq) - price, 0)
 
 
-def bond_price(        
-    y, face: float = 100.0, coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
+def _toperiod(
+    coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
+):
+    t = np.arange(ttm * freq, 0, -1)
+    cf = np.ones_like(t) * coupon / freq
+    cf[0] += 1
+    return t, cf
+
+
+def bond_price(
+    y, coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
 ) -> float:
     """Present value of a bond.
 
     Parameters
     ----------
-    price : float
-        Market price of the bond
-    face : float, optional
-        Face value, by default 100.0
+    y : float
+        Yield to maturity, annualized
     coupon : float, optional
-        Annual coupon in dollar terms, by default 0.0 (i.e. zero coupon)
+        Annual coupon rate, by default 0.0 (i.e. zero coupon)
     ttm : float, optional
-        Time to maturity, by default 1.0 (i.e. one year)
+        Time to maturity in year, by default 1.0 (i.e. one year)
     freq : int, optional
         Coupon frequency, by default 2 (i.e. semi-annual coupon)
 
@@ -58,7 +62,13 @@ def bond_price(
     float
         Present value of a bond
     """
-    t = np.arange(ttm * freq, 0, -1)
-    cf = np.ones_like(t) * coupon / freq
-    cf[0] += face
+    t, cf = _toperiod(coupon, ttm, freq)
     return (cf / (1 + y / freq) ** t).sum()
+
+
+def duration_macaulay(
+    y, coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
+) -> float:
+    t, cf = _toperiod(coupon, ttm, freq)
+    dcf = cf / (1 + y / freq) ** t
+    return (dcf * t / freq).sum() / dcf.sum()
