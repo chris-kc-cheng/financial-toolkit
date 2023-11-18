@@ -16,7 +16,7 @@ def yield_to_maturity(
     Parameters
     ----------
     price : float
-        Market price of the bond
+        Market price as a percentage of face value
     coupon : float, optional
         Annual coupon rate, by default 0.0 (i.e. zero coupon)
     ttm : float, optional
@@ -44,7 +44,7 @@ def _toperiod(
 def bond_price(
     y, coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
 ) -> float:
-    """Present value of a bond.
+    """Present value of a bond as a percentage of face value
 
     Parameters
     ----------
@@ -60,7 +60,7 @@ def bond_price(
     Returns
     -------
     float
-        Present value of a bond
+        Present value of a bond as a percentage of face value
     """
     t, cf = _toperiod(coupon, ttm, freq)
     return (cf / (1 + y / freq) ** t).sum()

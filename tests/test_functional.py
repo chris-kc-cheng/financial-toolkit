@@ -39,11 +39,11 @@ class TestFunctional(unittest.TestCase):
 
     def test_decorator(self):        
         
-        @ftk.functional.require_return
+        @ftk.functional._requirereturn
         def rfunc(x):
             return x
         
-        @ftk.functional.require_price
+        @ftk.functional._requireprice
         def pfunc(x):
             return x
         
@@ -93,13 +93,13 @@ class TestFunctional(unittest.TestCase):
         (1 + nky_r).div(1 + jpy_r).mul(1 + cad_r) - 1
 
         # Works
-        ftk.convertFX(nky_p, jpy_p, cad_p)
-        ftk.convertFX(nky_nky, jpy_p, cad_p)
-        ftk.convertFX(nky_r, jpy_r, cad_r)
-        ftk.convertFX(nky_nky_r, jpy_r, cad_r)
+        ftk.convert_fx(nky_p, jpy_p, cad_p)
+        ftk.convert_fx(nky_nky, jpy_p, cad_p)
+        ftk.convert_fx(nky_r, jpy_r, cad_r)
+        ftk.convert_fx(nky_nky_r, jpy_r, cad_r)
 
         # Some diff in the middle due to NaN
-        self.assertAlmostEqual((ftk.convertFX(nky_p, jpy_p, cad_p) - ftk.convertFX(nky_r, jpy_r, cad_r)).iloc[-1], 0)
+        self.assertAlmostEqual((ftk.convert_fx(nky_p, jpy_p, cad_p) - ftk.convert_fx(nky_r, jpy_r, cad_r)).iloc[-1], 0)
 
     def test_compound_return(self):
         self.assertAlmostEqual(ftk.compound_return(p, False), -0.12)

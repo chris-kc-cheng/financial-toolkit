@@ -6,7 +6,9 @@ import numpy as np
 from scipy import stats
 
 
-def bp(face: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25) -> float | np.ndarray:
+def bp(
+    face: float | np.ndarray = 100.0, rate: float = 0.05, time: float = 0.25
+) -> float | np.ndarray:
     """Present value of a zero-coupon bond.
 
     Auxiliary method to verify put-call parity hold.
@@ -28,11 +30,18 @@ def bp(face: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25) 
     return face * np.exp(-rate * time)
 
 
-def d1(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def d1(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Probability of an European option being exercised.
 
     .. math::
-        d_1 = \\frac{\ln(S/K) + (r - q + \\frac{1}{2}\sigma^2)\\tau}{\sigma\sqrt{\\tau}}      
+        d_1 = \\frac{\ln(S/K) + (r - q + \\frac{1}{2}\sigma^2)\\tau}{\sigma\sqrt{\\tau}}
 
     Parameters
     ----------
@@ -54,10 +63,19 @@ def d1(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05
     float | np.ndarray
         Probability of an European option being exercised.
     """
-    return (np.log(spot / strike) + (rate - dvd + vol ** 2 / 2) * time) / (vol * np.sqrt(time))
+    return (np.log(spot / strike) + (rate - dvd + vol**2 / 2) * time) / (
+        vol * np.sqrt(time)
+    )
 
 
-def d2(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def d2(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Probability of an European option **not** being exercised.
 
     .. math::
@@ -86,7 +104,14 @@ def d2(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05
     return d1(strike, spot, rate, time, vol, dvd) - vol * np.sqrt(time)
 
 
-def price_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def price_call(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Fair value of an European call option.
 
     .. math::
@@ -112,12 +137,21 @@ def price_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
     float | np.ndarray
         Fair value of the call option, in the same shape as spot.
     """
-    return spot * np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))\
-        - strike * np.exp(-rate * time) * \
-        stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
+    return spot * np.exp(-dvd * time) * stats.norm.cdf(
+        d1(strike, spot, rate, time, vol, dvd)
+    ) - strike * np.exp(-rate * time) * stats.norm.cdf(
+        d2(strike, spot, rate, time, vol, dvd)
+    )
 
 
-def price_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def price_put(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Fair value of an European put option.
 
     .. math::
@@ -143,12 +177,21 @@ def price_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
     float | np.ndarray
         Fair value of the put option, in the same shape as spot.
     """
-    return strike * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))\
-        - spot * np.exp(-dvd * time) * \
-        stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
+    return strike * np.exp(-rate * time) * stats.norm.cdf(
+        -d2(strike, spot, rate, time, vol, dvd)
+    ) - spot * np.exp(-dvd * time) * stats.norm.cdf(
+        -d1(strike, spot, rate, time, vol, dvd)
+    )
 
 
-def delta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def delta_call(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Delta of an European call option.
 
     Delta is the rate of change of the option price with respect to the price of the underlying asset.
@@ -181,7 +224,14 @@ def delta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
     return np.exp(-dvd * time) * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))
 
 
-def delta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def delta_put(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Delta of an European put option.
 
     .. math::
@@ -211,10 +261,19 @@ def delta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
     float | np.ndarray
         Delta of the put option, in the same shape as spot.
     """
-    return -np.exp(-dvd * time) * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
+    return -np.exp(-dvd * time) * stats.norm.cdf(
+        -d1(strike, spot, rate, time, vol, dvd)
+    )
 
 
-def vega(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def vega(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Vega of an European call/put option.
 
     .. math::
@@ -246,10 +305,22 @@ def vega(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.
     float | np.ndarray
         Vega of the option, in the same shape as spot.
     """
-    return spot * np.exp(-dvd * time) * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * np.sqrt(time)
+    return (
+        spot
+        * np.exp(-dvd * time)
+        * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd))
+        * np.sqrt(time)
+    )
 
 
-def gamma(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def gamma(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Gamma of an European call/put option.
 
     .. math::
@@ -280,10 +351,22 @@ def gamma(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0
     float | np.ndarray
         Gamma of the option, in the same shape as spot.
     """
-    return np.exp(-dvd * time) * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) / spot / (vol * np.sqrt(time))
+    return (
+        np.exp(-dvd * time)
+        * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd))
+        / spot
+        / (vol * np.sqrt(time))
+    )
 
 
-def theta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def theta_call(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Theta(call) of an European call option.
 
     .. math::
@@ -313,13 +396,32 @@ def theta_call(strike: float = 100., spot: float | np.ndarray = 100., rate: floa
     float | np.ndarray
         Theta of the call option, in the same shape as spot.
     """
-    return np.exp(-dvd * time) * -spot * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * vol / 2 / np.sqrt(time)\
-        - rate * strike * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))\
-        + dvd * spot * np.exp(-dvd * time) * \
-        stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))
+    return (
+        np.exp(-dvd * time)
+        * -spot
+        * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd))
+        * vol
+        / 2
+        / np.sqrt(time)
+        - rate
+        * strike
+        * np.exp(-rate * time)
+        * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
+        + dvd
+        * spot
+        * np.exp(-dvd * time)
+        * stats.norm.cdf(d1(strike, spot, rate, time, vol, dvd))
+    )
 
 
-def theta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def theta_put(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Theta of an European put option.
 
     .. math::
@@ -349,13 +451,32 @@ def theta_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float
     float | np.ndarray
         Theta of the put option, in the same shape as spot.
     """
-    return np.exp(-dvd * time) * -spot * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd)) * vol / 2 / np.sqrt(time)\
-        + rate * strike * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))\
-        - dvd * spot * np.exp(-dvd * time) * \
-        stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
+    return (
+        np.exp(-dvd * time)
+        * -spot
+        * stats.norm.pdf(d1(strike, spot, rate, time, vol, dvd))
+        * vol
+        / 2
+        / np.sqrt(time)
+        + rate
+        * strike
+        * np.exp(-rate * time)
+        * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))
+        - dvd
+        * spot
+        * np.exp(-dvd * time)
+        * stats.norm.cdf(-d1(strike, spot, rate, time, vol, dvd))
+    )
 
 
-def rho_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def rho_call(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Rho of an European call option.
 
     .. math::
@@ -381,10 +502,22 @@ def rho_call(strike: float = 100., spot: float | np.ndarray = 100., rate: float 
     float | np.ndarray
         Rho of the call option, in the same shape as spot.
     """
-    return strike * time * np.exp(-rate * time) * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
+    return (
+        strike
+        * time
+        * np.exp(-rate * time)
+        * stats.norm.cdf(d2(strike, spot, rate, time, vol, dvd))
+    )
 
 
-def rho_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float = 0.05, time: float = 0.25, vol: float = 0.2, dvd: float = 0.) -> float | np.ndarray:
+def rho_put(
+    strike: float = 100.0,
+    spot: float | np.ndarray = 100.0,
+    rate: float = 0.05,
+    time: float = 0.25,
+    vol: float = 0.2,
+    dvd: float = 0.0,
+) -> float | np.ndarray:
     """Rho of an European put option.
 
     .. math::
@@ -410,4 +543,9 @@ def rho_put(strike: float = 100., spot: float | np.ndarray = 100., rate: float =
     float | np.ndarray
         Rho of the put option, in the same shape as spot.
     """
-    return -strike * time * np.exp(-rate * time) * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))
+    return (
+        -strike
+        * time
+        * np.exp(-rate * time)
+        * stats.norm.cdf(-d2(strike, spot, rate, time, vol, dvd))
+    )
