@@ -29,6 +29,14 @@ toolkit.functional module
    :undoc-members:
    :show-inheritance:
 
+toolkit.fixed\_income module
+------------------------
+
+.. automodule:: toolkit.fixed_income
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 toolkit.portfolio module
 ------------------------
 
