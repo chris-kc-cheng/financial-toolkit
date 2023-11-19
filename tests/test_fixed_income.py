@@ -1,7 +1,11 @@
 import unittest
+import numpy as np
 import toolkit as ftk
 
 # Alternative implementations using explicit formula
+# However, those are not as flexible as the ndarray implementation due to
+# the restriction in time to maturity
+
 def bond_price_alt(
     y, coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
 ) -> float:
@@ -21,6 +25,7 @@ def duration_macaulay_alt(
     return ((1 + y) / freq / y - (1 + y + n * (coupon / freq - y)) / (coupon * ((1 + y) ** n - 1) + freq * y))
 
 class TestBonds(unittest.TestCase):
+
     def test_yield_to_maturity(self):
         # Par bond
         self.assertAlmostEqual(ftk.bond_price(0.09, 0.09, 5), 1)
@@ -56,6 +61,19 @@ class TestBonds(unittest.TestCase):
         
         # Investopedia
         self.assertAlmostEqual(ftk.duration_macaulay(0.06, 0.1, 3, 2), 2.6840, 4)
+
+        # Bacon
+        ir = np.concatenate([
+            np.repeat(0.035, 8),
+            np.repeat(0.0375, 8),
+            np.repeat(0.04, 4)])
+
+        self.assertAlmostEqual(ftk.duration_macaulay(0.0389, 0.06, 20, 1), 13.13, 2)
+        self.assertAlmostEqual(ftk.duration_modified(0.0389, 0.06, 20, 1), 12.64, 2)
+        self.assertAlmostEqual(ftk.duration_effective(ir, 0.06, 20, 1, 0.0025), 12.55, 2)
+        self.assertAlmostEqual(ftk.convexity(ir, 0.06, 20, 1), 230.06, 2)
+        self.assertAlmostEqual(ftk.convexity_modified(ir, 0.06, 20, 1), 213.14, 2)
+        self.assertAlmostEqual(ftk.convexity_effective(ir, 0.06, 20, 1, 0.0025), 213.00, 2)
 
         # Alternative implementation
         self.assertAlmostEqual(
