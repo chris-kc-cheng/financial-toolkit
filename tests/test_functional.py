@@ -1,4 +1,3 @@
-
 import unittest
 import numpy as np
 import pandas as pd
@@ -8,21 +7,143 @@ from sklearn import linear_model
 import toolkit as ftk
 
 n = 4
-p = pd.Series([1, 1.25, 1, 0.8, 0.88], index=pd.date_range("2018-01-01", periods=5, freq="W"))
-r = pd.Series([0.25, -0.2, -0.2, 0.1], index=pd.period_range("2018-01-08", periods=4, freq="W"))
+p = pd.Series(
+    [1, 1.25, 1, 0.8, 0.88], index=pd.date_range("2018-01-01", periods=5, freq="W")
+)
+r = pd.Series(
+    [0.25, -0.2, -0.2, 0.1], index=pd.period_range("2018-01-08", periods=4, freq="W")
+)
 pp = pd.concat([p, p], axis=1)
 rr = pd.concat([r, r], axis=1)
 
-class TestFunctional(unittest.TestCase):
 
-    unit_price = pd.Series([100,100.3,102.91,104.04,103.1,104.55,107.06,108.66,115.83,114.21,118.67,118.07,127.64,132.74,127.83,120.03,121.71,115.75,113.32,120.34,127.32,119.18,121.2,120.72,120.48,117.95,119.24,124.85,127.84,132.06,131.14,137.3,138.13,139.51,139.23,143.96,145.4],
-        index=pd.date_range('1999-12', periods=37, freq='M'))
-    benchmark_price = pd.Series([100,100.2,102.71,104.55,103.4,104.85,107.26,108.76,115.83,114.1,118.89,118.53,128.37,133.38,128.31,120.35,122.16,116.29,113.97,120.81,127.57,119.03,121.29,120.92,120.8,117.66,118.48,123.58,127.16,132,131.73,138.45,140.39,142.21,142.64,147.49,150.59],
-        index=pd.date_range('1999-12', periods=37, freq='M'))
-    risk_free_return = pd.Series([0.001,0.001,0.002,0.002,0.002,0.002,0.002,0.003,0.003,0.004,0.004,0.003,0.003,0.003,0.003,0.004,0.002,0.002,0.002,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.002,0.002,0.002,0.002,0.002,0.002,0.002],
-        index=pd.period_range('2000-01', periods=36, freq='M'))
+class TestFunctional(unittest.TestCase):
+    unit_price = pd.Series(
+        [
+            100,
+            100.3,
+            102.91,
+            104.04,
+            103.1,
+            104.55,
+            107.06,
+            108.66,
+            115.83,
+            114.21,
+            118.67,
+            118.07,
+            127.64,
+            132.74,
+            127.83,
+            120.03,
+            121.71,
+            115.75,
+            113.32,
+            120.34,
+            127.32,
+            119.18,
+            121.2,
+            120.72,
+            120.48,
+            117.95,
+            119.24,
+            124.85,
+            127.84,
+            132.06,
+            131.14,
+            137.3,
+            138.13,
+            139.51,
+            139.23,
+            143.96,
+            145.4,
+        ],
+        index=pd.date_range("1999-12", periods=37, freq="M"),
+    )
+    benchmark_price = pd.Series(
+        [
+            100,
+            100.2,
+            102.71,
+            104.55,
+            103.4,
+            104.85,
+            107.26,
+            108.76,
+            115.83,
+            114.1,
+            118.89,
+            118.53,
+            128.37,
+            133.38,
+            128.31,
+            120.35,
+            122.16,
+            116.29,
+            113.97,
+            120.81,
+            127.57,
+            119.03,
+            121.29,
+            120.92,
+            120.8,
+            117.66,
+            118.48,
+            123.58,
+            127.16,
+            132,
+            131.73,
+            138.45,
+            140.39,
+            142.21,
+            142.64,
+            147.49,
+            150.59,
+        ],
+        index=pd.date_range("1999-12", periods=37, freq="M"),
+    )
+    risk_free_return = pd.Series(
+        [
+            0.001,
+            0.001,
+            0.002,
+            0.002,
+            0.002,
+            0.002,
+            0.002,
+            0.003,
+            0.003,
+            0.004,
+            0.004,
+            0.003,
+            0.003,
+            0.003,
+            0.003,
+            0.004,
+            0.002,
+            0.002,
+            0.002,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.001,
+            0.002,
+            0.002,
+            0.002,
+            0.002,
+            0.002,
+            0.002,
+            0.002,
+        ],
+        index=pd.period_range("2000-01", periods=36, freq="M"),
+    )
     price_df = pd.concat([unit_price, benchmark_price], axis=1)
-    
 
     def test_periodicity(self):
         for p in ftk.PERIODICITY:
@@ -37,16 +158,15 @@ class TestFunctional(unittest.TestCase):
         pd.testing.assert_frame_equal(ftk.price_to_return(pp), rr)
         pd.testing.assert_frame_equal(ftk.return_to_price(rr), pp)
 
-    def test_decorator(self):        
-        
+    def test_decorator(self):
         @ftk.functional._requirereturn
         def rfunc(x):
             return x
-        
+
         @ftk.functional._requireprice
         def pfunc(x):
             return x
-        
+
         pd.testing.assert_series_equal(rfunc(r), r)
         pd.testing.assert_series_equal(rfunc(p), r)
         pd.testing.assert_series_equal(pfunc(r), p)
@@ -54,11 +174,11 @@ class TestFunctional(unittest.TestCase):
 
     def test_convert_fx(self):
         n = 8
-        dr = pd.date_range(start='2023-11-3', periods=n, freq='D')
-        nky_p = pd.Series(np.arange(100, 100 + n), dr, name='NKY')
-        jpy_p = pd.Series(np.arange(100, 100 + n), dr, name='JPY')
-        cad_p = pd.Series(100 / np.arange(100, 100 + n), dr, name='CAD')
-        one_p = pd.Series(np.ones_like(nky_p), dr, name='ONE')
+        dr = pd.date_range(start="2023-11-3", periods=n, freq="D")
+        nky_p = pd.Series(np.arange(100, 100 + n), dr, name="NKY")
+        jpy_p = pd.Series(np.arange(100, 100 + n), dr, name="JPY")
+        cad_p = pd.Series(100 / np.arange(100, 100 + n), dr, name="CAD")
+        one_p = pd.Series(np.ones_like(nky_p), dr, name="ONE")
 
         nky_nky = pd.concat([nky_p, nky_p], axis=1)
         jpy_cad = pd.concat([jpy_p, cad_p], axis=1)
@@ -99,84 +219,143 @@ class TestFunctional(unittest.TestCase):
         ftk.convert_fx(nky_nky_r, jpy_r, cad_r)
 
         # Some diff in the middle due to NaN
-        self.assertAlmostEqual((ftk.convert_fx(nky_p, jpy_p, cad_p) - ftk.convert_fx(nky_r, jpy_r, cad_r)).iloc[-1], 0)
+        self.assertAlmostEqual(
+            (
+                ftk.convert_fx(nky_p, jpy_p, cad_p)
+                - ftk.convert_fx(nky_r, jpy_r, cad_r)
+            ).iloc[-1],
+            0,
+        )
 
     def test_compound_return(self):
         self.assertAlmostEqual(ftk.compound_return(p, False), -0.12)
         self.assertAlmostEqual(ftk.compound_return(r, False), -0.12)
-        self.assertAlmostEqual(ftk.compound_return(r, False), (1+r).prod() - 1)
+        self.assertAlmostEqual(ftk.compound_return(r, False), (1 + r).prod() - 1)
         self.assertAlmostEqual(ftk.compound_return(pp, False)[0], -0.12)
         self.assertAlmostEqual(ftk.compound_return(rr, False)[1], -0.12)
-    
-    def test_skew_kurt(self):
-        self.assertAlmostEqual(ftk.skew(r), scipy.stats.skew(r, bias=False))        
-        self.assertAlmostEqual(ftk.skew(r), scipy.stats.skew(r) * np.sqrt((n - 1) * n) / (n - 2))
-        np.testing.assert_array_almost_equal(ftk.skew(rr), scipy.stats.skew(rr, bias=False))
 
-        self.assertAlmostEqual(ftk.kurt(r), scipy.stats.kurtosis(r, bias=False))        
-        self.assertAlmostEqual(ftk.kurt(r), (n - 1) / (n - 2) / (n - 3) * ((n + 1) * scipy.stats.kurtosis(r) + 6))
-        np.testing.assert_array_almost_equal(ftk.kurt(rr), scipy.stats.kurtosis(rr, bias=False))
+    def test_skew_kurt(self):
+        self.assertAlmostEqual(ftk.skew(r), scipy.stats.skew(r, bias=False))
+        self.assertAlmostEqual(
+            ftk.skew(r), scipy.stats.skew(r) * np.sqrt((n - 1) * n) / (n - 2)
+        )
+        np.testing.assert_array_almost_equal(
+            ftk.skew(rr), scipy.stats.skew(rr, bias=False)
+        )
+
+        self.assertAlmostEqual(ftk.kurt(r), scipy.stats.kurtosis(r, bias=False))
+        self.assertAlmostEqual(
+            ftk.kurt(r),
+            (n - 1) / (n - 2) / (n - 3) * ((n + 1) * scipy.stats.kurtosis(r) + 6),
+        )
+        np.testing.assert_array_almost_equal(
+            ftk.kurt(rr), scipy.stats.kurtosis(rr, bias=False)
+        )
 
     def test_mean(self):
         self.assertAlmostEqual(ftk.arithmetic_mean(r), r.sum() / len(r))
-        np.testing.assert_array_almost_equal(ftk.arithmetic_mean(rr), rr.sum() / len(rr))
-        
+        np.testing.assert_array_almost_equal(
+            ftk.arithmetic_mean(rr), rr.sum() / len(rr)
+        )
+
         self.assertAlmostEqual(ftk.geometric_mean(r), scipy.stats.gmean(1 + r) - 1)
-        np.testing.assert_array_almost_equal(ftk.geometric_mean(rr), scipy.stats.gmean(1 + rr) - 1)
-        
-    def test_descriptive_stats(self):        
+        np.testing.assert_array_almost_equal(
+            ftk.geometric_mean(rr), scipy.stats.gmean(1 + rr) - 1
+        )
+
+    def test_descriptive_stats(self):
         self.assertAlmostEqual(ftk.arithmetic_mean(self.unit_price), 0.011, 3)
         self.assertAlmostEqual(ftk.compound_return(self.unit_price), 0.454, 3)
-        self.assertAlmostEqual(ftk.compound_return(self.unit_price, annualize=True), 0.1329, 4)
+        self.assertAlmostEqual(
+            ftk.compound_return(self.unit_price, annualize=True), 0.1329, 4
+        )
         self.assertAlmostEqual(ftk.mean_abs_dev(self.unit_price), 0.0252, 4)
         self.assertAlmostEqual(ftk.variance(self.unit_price), 0.0011 * 36 / 35, 4)
         self.assertAlmostEqual(ftk.volatility(self.unit_price), 0.0336, 4)
-        self.assertAlmostEqual(ftk.volatility(self.unit_price, annualize=True), 0.1149 * np.sqrt(36 / 35), 4)
+        self.assertAlmostEqual(
+            ftk.volatility(self.unit_price, annualize=True),
+            0.1149 * np.sqrt(36 / 35),
+            4,
+        )
         self.assertAlmostEqual(ftk.skew(self.unit_price), -0.25, 2)
         self.assertAlmostEqual(ftk.kurt(self.unit_price), 0.16, 2)
-        self.assertAlmostEqual(ftk.covariance(self.price_df).iloc[0, 1], 0.001109 * 36 / 35, 6)
+        self.assertAlmostEqual(
+            ftk.covariance(self.price_df).iloc[0, 1], 0.001109 * 36 / 35, 6
+        )
         self.assertAlmostEqual(ftk.correlation(self.price_df).iloc[0, 1], 0.995, 3)
         self.assertAlmostEqual(ftk.sharpe(self.unit_price, 0.0243), 0.93, 2)
 
     def test_relative_risk(self):
-        self.assertAlmostEqual(ftk.tracking_error(self.unit_price, self.benchmark_price), 0.00348 * np.sqrt(35 / 36), 3)
-        self.assertAlmostEqual(ftk.tracking_error(self.unit_price, self.benchmark_price, True), 0.0121 * np.sqrt(35 / 36), 3)
-        self.assertAlmostEqual(ftk.information_ratio(self.unit_price, self.benchmark_price), -1.1, 1)
+        self.assertAlmostEqual(
+            ftk.tracking_error(self.unit_price, self.benchmark_price),
+            0.00348 * np.sqrt(35 / 36),
+            3,
+        )
+        self.assertAlmostEqual(
+            ftk.tracking_error(self.unit_price, self.benchmark_price, True),
+            0.0121 * np.sqrt(35 / 36),
+            3,
+        )
+        self.assertAlmostEqual(
+            ftk.information_ratio(self.unit_price, self.benchmark_price), -1.1, 1
+        )
 
     def test_regression(self):
-        # Regression only, does NOT take into account of risk free rate       
-        self.assertAlmostEqual(ftk.beta(self.unit_price, self.benchmark_price), 0.9814, 3) # vs 0.9812        
-        self.assertAlmostEqual(ftk.alpha(self.unit_price, self.benchmark_price), -0.00078, 5)
+        # Regression only, does NOT take into account of risk free rate
+        self.assertAlmostEqual(
+            ftk.beta(self.unit_price, self.benchmark_price), 0.9814, 3
+        )  # vs 0.9812
+        self.assertAlmostEqual(
+            ftk.alpha(self.unit_price, self.benchmark_price), -0.00078, 5
+        )
 
         # Jensen
         unit_rfr = ftk.price_to_return(self.unit_price) - self.risk_free_return
-        benchmark_rfr = ftk.price_to_return(self.benchmark_price) - self.risk_free_return
+        benchmark_rfr = (
+            ftk.price_to_return(self.benchmark_price) - self.risk_free_return
+        )
 
         self.assertAlmostEqual(ftk.beta(unit_rfr, benchmark_rfr), 0.982, 3)
         self.assertAlmostEqual(ftk.alpha(unit_rfr, benchmark_rfr), -0.00082, 5)
 
-        self.assertAlmostEqual(ftk.bull_beta(self.unit_price, self.benchmark_price, self.risk_free_return), 1.035, 3)
-        self.assertAlmostEqual(ftk.bear_beta(self.unit_price, self.benchmark_price, self.risk_free_return), 0.948, 3)
-        self.assertAlmostEqual(ftk.beta_timing_ratio(self.unit_price, self.benchmark_price, self.risk_free_return), 1.092, 3)
-        
+        self.assertAlmostEqual(
+            ftk.bull_beta(self.unit_price, self.benchmark_price, self.risk_free_return),
+            1.035,
+            3,
+        )
+        self.assertAlmostEqual(
+            ftk.bear_beta(self.unit_price, self.benchmark_price, self.risk_free_return),
+            0.948,
+            3,
+        )
+        self.assertAlmostEqual(
+            ftk.beta_timing_ratio(
+                self.unit_price, self.benchmark_price, self.risk_free_return
+            ),
+            1.092,
+            3,
+        )
+
         # FIXME - no test for Treynor ratio yet
 
     def test_beta_multiple(self):
-        # Small difference between statsmodel and scipy/sklearn        
+        # Small difference between statsmodel and scipy/sklearn
         f = ftk.price_to_return(self.unit_price)
         b = ftk.price_to_return(self.benchmark_price)
         ff = pd.concat([f, b], axis=1)
         bb = pd.concat([b, f], axis=1)
 
         # Scipy's lingress cannot do multiple regression
-        self.assertAlmostEqual(scipy.stats.linregress(b, f).slope, 0.9814, 3) # 0.981230
+        self.assertAlmostEqual(
+            scipy.stats.linregress(b, f).slope, 0.9814, 3
+        )  # 0.981230
 
         model = sm.OLS(f, sm.add_constant(b)).fit()
-        self.assertAlmostEqual(model.params[0], 0.9814, 3) # 0.98130
-        
+        self.assertAlmostEqual(model.params[0], 0.9814, 3)  # 0.98130
+
         reg = linear_model.LinearRegression()
         reg.fit(pd.DataFrame(b), f)
-        self.assertAlmostEqual(reg.coef_[0], 0.9814, 3) # 0.981230
+        self.assertAlmostEqual(reg.coef_[0], 0.9814, 3)  # 0.981230
 
         # Linear regression, single fund
         self.assertAlmostEqual(ftk.beta(f, b), 0.9814, 3)
@@ -195,69 +374,104 @@ class TestFunctional(unittest.TestCase):
     def test_drawdown(self):
         # Assuming uninterrupted drawdown definition is used
         self.assertAlmostEqual(ftk.worst_drawdown(self.unit_price), -0.1463, 4)
-        self.assertAlmostEqual(ftk.calmar(self.unit_price, rfr_annualized=0.0243), 0.74, 2)
+        self.assertAlmostEqual(
+            ftk.calmar(self.unit_price, rfr_annualized=0.0243), 0.74, 2
+        )
         self.assertAlmostEqual(ftk.avg_drawdown(self.unit_price, d=3), -0.056, 3)
-        #ftk.sterling() # Original
-        self.assertAlmostEqual(ftk.sterling_modified(self.unit_price, rfr_annualized=0.0243, d=3), 1.92, 2)
+        # ftk.sterling() # Original
+        self.assertAlmostEqual(
+            ftk.sterling_modified(self.unit_price, rfr_annualized=0.0243, d=3), 1.92, 2
+        )
         self.assertAlmostEqual(ftk.drawdown_deviation(self.unit_price, d=3), -0.0245, 4)
-        self.assertAlmostEqual(ftk.burke_modified(self.unit_price, rfr_annualized=0.0243, d=3), 4.43, 1) # vs 4.42
+        self.assertAlmostEqual(
+            ftk.burke_modified(self.unit_price, rfr_annualized=0.0243, d=3), 4.43, 1
+        )  # vs 4.42
         self.assertAlmostEqual(ftk.avg_annual_drawdown(self.unit_price), -0.0604, 4)
-        self.assertAlmostEqual(ftk.sterling_calmar(self.unit_price, rfr_annualized=0.0243), 1.80, 2)
+        self.assertAlmostEqual(
+            ftk.sterling_calmar(self.unit_price, rfr_annualized=0.0243), 1.80, 2
+        )
         self.assertAlmostEqual(ftk.pain_index(self.unit_price), 0.0376, 4)
         self.assertAlmostEqual(ftk.pain(self.unit_price, 0.0243), 2.89, 2)
         self.assertAlmostEqual(ftk.ulcer_index(self.unit_price), 0.0597, 4)
         self.assertAlmostEqual(ftk.martin(self.unit_price, 0.0243), 1.82, 2)
 
+        # Max Upturn
+        self.assertAlmostEqual(
+            ftk.max_upturn(ftk.price_to_return(self.unit_price).loc["2000"]), 0.2764, 4
+        )
+
     def test_partial_moments(self):
-        self.assertAlmostEqual(ftk.downside_potential(self.unit_price, mar=0.005), 0.0101, 4)
+        self.assertAlmostEqual(
+            ftk.downside_potential(self.unit_price, mar=0.005), 0.0101, 4
+        )
         self.assertAlmostEqual(ftk.downside_risk(self.unit_price, mar=0.005), 0.0212, 4)
-        self.assertAlmostEqual(ftk.downside_risk(self.unit_price, mar=0.005, annualize=True), 0.0733, 4)
-        self.assertAlmostEqual(ftk.upside_potential(self.unit_price, mar=0.005), 0.0161, 4)
+        self.assertAlmostEqual(
+            ftk.downside_risk(self.unit_price, mar=0.005, annualize=True), 0.0733, 4
+        )
+        self.assertAlmostEqual(
+            ftk.upside_potential(self.unit_price, mar=0.005), 0.0161, 4
+        )
         self.assertAlmostEqual(ftk.upside_risk(self.unit_price, mar=0.005), 0.0262, 4)
-        self.assertAlmostEqual(ftk.upside_risk(self.unit_price, mar=0.005, annualize=True), 0.0909, 4)
+        self.assertAlmostEqual(
+            ftk.upside_risk(self.unit_price, mar=0.005, annualize=True), 0.0909, 4
+        )
         self.assertAlmostEqual(ftk.omega(self.unit_price, mar=0.005), 1.6, 1)
-        self.assertAlmostEqual(ftk.upside_potential_ratio(self.unit_price, 0.005), 0.22, 2)
-        self.assertAlmostEqual(ftk.variability_skewness(self.unit_price, 0.005), 1.24, 2)
+        self.assertAlmostEqual(
+            ftk.upside_potential_ratio(self.unit_price, 0.005), 0.22, 2
+        )
+        self.assertAlmostEqual(
+            ftk.variability_skewness(self.unit_price, 0.005), 1.24, 2
+        )
         self.assertAlmostEqual(ftk.sortino(self.unit_price, mar=0.005), 0.97, 2)
 
     def test_value_at_risk(self):
         for alpha in [0.05, 0.95]:
-            self.assertAlmostEqual(ftk.var_historical(self.unit_price, alpha), -0.0520, 4)
+            self.assertAlmostEqual(
+                ftk.var_historical(self.unit_price, alpha), -0.0520, 4
+            )
             self.assertAlmostEqual(ftk.var_normal(self.unit_price, alpha), -0.0443, 4)
             self.assertAlmostEqual(ftk.var_modified(self.unit_price, alpha), -0.0465, 4)
-            self.assertAlmostEqual(ftk.cvar_historical(self.unit_price, alpha), -0.0625, 4)
+            self.assertAlmostEqual(
+                ftk.cvar_historical(self.unit_price, alpha), -0.0625, 4
+            )
             self.assertAlmostEqual(ftk.cvar_normal(self.unit_price, alpha), -0.0584, 4)
 
     def test_summary(self):
-        summary = ftk.summary(self.unit_price, self.benchmark_price, self.risk_free_return)
-         
-        self.assertAlmostEqual(summary['Periodic Geometric Mean'], 0.0105, 4)
-        self.assertAlmostEqual(summary['Best Period'], 0.0811, 4)
-        self.assertAlmostEqual(summary['Worst Period'], -0.0639, 4)
-        self.assertAlmostEqual(summary['Average Positive Period'], 0.0301, 4)
-        self.assertAlmostEqual(summary['Average Negative Period'], -0.0228, 4)
-        self.assertAlmostEqual(summary['Period Volatility of Positive Return'], 0.0217, 4)
-        self.assertAlmostEqual(summary['Period Volatility of Negative Return'], 0.0225, 4)
-        
-        self.assertEqual(summary['Normal (1%)'], True)
-        self.assertAlmostEqual(summary['VaR Historical (95%)'], -0.0520, 4)
-        self.assertAlmostEqual(summary['VaR Gaussian (95%)'], -0.0443, 4)
-        self.assertAlmostEqual(summary['VaR Modified (95%)'], -0.0465, 4)
+        summary = ftk.summary(
+            self.unit_price, self.benchmark_price, self.risk_free_return
+        )
 
-        self.assertAlmostEqual(summary['Sharpe (2.43%)'], 0.9322, 4)
-        self.assertAlmostEqual(summary['Calmar'], 0.7425, 4),
-        self.assertAlmostEqual(summary['Sterling Original'], 0.8283, 4)
-        self.assertAlmostEqual(summary['Average Annual Drawdown'], -0.0604, 4)
-        self.assertAlmostEqual(summary['Downside Risk (Annualized)'], 0.0663, 4)
-        self.assertAlmostEqual(summary['Omega Ratio'], 2.3382, 4),
-        self.assertAlmostEqual(summary['Sortino Ratio'], 2.0034, 4),
-        self.assertAlmostEqual(summary['Annualized Active Return'], -0.0133, 4)
-        self.assertAlmostEqual(summary['Annualized Tracking Error'], 0.0122, 4)
-        self.assertAlmostEqual(summary['Annualized Information Ratio'], -1.0921, 4)
-        self.assertAlmostEqual(summary['Beta'], 0.98, 2)
-        self.assertAlmostEqual(summary['Alpha (Annualized)'], -0.0098, 4)
-        self.assertAlmostEqual(summary['Correlation'], 0.9947, 4)
-        self.assertAlmostEqual(summary['R-Squared'], 0.9894, 4)
-        self.assertAlmostEqual(summary['Treynor Ratio'], 0.111, 3)
-        self.assertAlmostEqual(summary['Up Capture'], 0.9276, 4)
-        self.assertAlmostEqual(summary['Down Capture'], 0.9929, 4)
+        self.assertAlmostEqual(summary["Periodic Geometric Mean"], 0.0105, 4)
+        self.assertAlmostEqual(summary["Best Period"], 0.0811, 4)
+        self.assertAlmostEqual(summary["Worst Period"], -0.0639, 4)
+        self.assertAlmostEqual(summary["Average Positive Period"], 0.0301, 4)
+        self.assertAlmostEqual(summary["Average Negative Period"], -0.0228, 4)
+        self.assertAlmostEqual(
+            summary["Period Volatility of Positive Return"], 0.0217, 4
+        )
+        self.assertAlmostEqual(
+            summary["Period Volatility of Negative Return"], 0.0225, 4
+        )
+
+        self.assertEqual(summary["Normal (1%)"], True)
+        self.assertAlmostEqual(summary["VaR Historical (95%)"], -0.0520, 4)
+        self.assertAlmostEqual(summary["VaR Gaussian (95%)"], -0.0443, 4)
+        self.assertAlmostEqual(summary["VaR Modified (95%)"], -0.0465, 4)
+
+        self.assertAlmostEqual(summary["Sharpe (2.43%)"], 0.9322, 4)
+        self.assertAlmostEqual(summary["Calmar"], 0.7425, 4),
+        self.assertAlmostEqual(summary["Sterling Original"], 0.8283, 4)
+        self.assertAlmostEqual(summary["Average Annual Drawdown"], -0.0604, 4)
+        self.assertAlmostEqual(summary["Downside Risk (Annualized)"], 0.0663, 4)
+        self.assertAlmostEqual(summary["Omega Ratio"], 2.3382, 4),
+        self.assertAlmostEqual(summary["Sortino Ratio"], 2.0034, 4),
+        self.assertAlmostEqual(summary["Annualized Active Return"], -0.0133, 4)
+        self.assertAlmostEqual(summary["Annualized Tracking Error"], 0.0122, 4)
+        self.assertAlmostEqual(summary["Annualized Information Ratio"], -1.0921, 4)
+        self.assertAlmostEqual(summary["Beta"], 0.98, 2)
+        self.assertAlmostEqual(summary["Alpha (Annualized)"], -0.0098, 4)
+        self.assertAlmostEqual(summary["Correlation"], 0.9947, 4)
+        self.assertAlmostEqual(summary["R-Squared"], 0.9894, 4)
+        self.assertAlmostEqual(summary["Treynor Ratio"], 0.111, 3)
+        self.assertAlmostEqual(summary["Up Capture"], 0.9276, 4)
+        self.assertAlmostEqual(summary["Down Capture"], 0.9929, 4)

@@ -9,7 +9,7 @@ from scipy import stats
 def bp(
     face: float | np.ndarray = 100.0, rate: float = 0.05, time: float = 0.25
 ) -> float | np.ndarray:
-    """Present value of a zero-coupon bond.
+    """Present value of a zero-coupon bond, using continuous compounding.
 
     Auxiliary method to verify put-call parity hold.
 

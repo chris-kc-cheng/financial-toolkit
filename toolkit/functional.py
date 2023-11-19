@@ -90,8 +90,8 @@ def return_to_price(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.Data
 
 
 def _requirereturn(func):
-    """Decorator that convert prices to returns if Index is DatetimeIndex
-    """
+    """Decorator that convert prices to returns if Index is DatetimeIndex"""
+
     @wraps(func)
     def wrapper(pre, *args, **kwargs):
         post = pre
@@ -104,8 +104,8 @@ def _requirereturn(func):
 
 
 def _requireprice(func):
-    """Decorator that convert returns to prices if Index is PeriodIndex
-    """
+    """Decorator that convert returns to prices if Index is PeriodIndex"""
+
     @wraps(func)
     def wrapper(pre, *args, **kwargs):
         post = pre
@@ -121,6 +121,7 @@ def _requirebenchmark(func):
     """Decorator that convert benchmark values to returns if Index is
     DatetimeIndex
     """
+
     @wraps(func)
     def wrapper(x, pre, *args, **kwargs):
         post = pre
@@ -275,10 +276,10 @@ def variance(
     float | pd.Series
         Variance
     """
-    v = timeseries.var()
+    var = timeseries.var()
     if annualize:
-        v *= periodicity(timeseries)
-    return v
+        var *= periodicity(timeseries)
+    return var
 
 
 @_requirereturn
@@ -299,10 +300,10 @@ def volatility(timeseries: pd.Series | pd.DataFrame, annualize=False):
         Volatility
     """
     # Degree of freedom is N-1 for Pandas but N for NumPy
-    v = timeseries.std()
+    vol = timeseries.std()
     if annualize:
-        v *= np.sqrt(periodicity(timeseries))
-    return v
+        vol *= np.sqrt(periodicity(timeseries))
+    return vol
 
 
 @_requirereturn
@@ -384,6 +385,22 @@ def correlation(timeseries: pd.DataFrame) -> pd.DataFrame:
 def sharpe(
     timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, annualize=True
 ) -> float | pd.Series:
+    """Sharpe ratio measures the reward to variability
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series of DataFrame of returns
+    rfr_annualized : float, optional
+        Annualized risk-free rate, by default 0
+    annualize : bool, optional
+        Specify if returns and volatility are annualized, by default True
+
+    Returns
+    -------
+    float | pd.Series
+        _description_
+    """
     rate = rfr_annualized
     if not annualize:
         rate = (1 + rfr_annualized) ** (1 / periodicity(timeseries))
@@ -392,14 +409,26 @@ def sharpe(
     )
 
 
-# FIXME not tested @requirePrice
+@_requireprice
 def max_upturn(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
-    return (timeseries / timeseries.cummin()).max()
+    """Maximum upturn
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of prices
+
+    Returns
+    -------
+    float | pd.Series
+        Maximum upturn
+    """
+    return (timeseries / timeseries.cummin()).max() - 1
 
 
 @_requireprice
 def worst_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
-    """Worst drawdown
+    """Worst drawdown (or maximum drawdown)
 
     Parameters
     ----------
@@ -440,10 +469,36 @@ def all_drawdown(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFra
 
 @_requirereturn
 def avg_annual_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Average drawdown by calendar year
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Average annual drawdown
+    """
     return timeseries.groupby(timeseries.index.year).aggregate(worst_drawdown).mean()
 
 
 def avg_drawdown(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> float | pd.Series:
+    """Average of the `d` largest drawdowns
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of prices
+    d : int, optional
+        Number of observations, by default 3
+
+    Returns
+    -------
+    float | pd.Series
+        Average of the `d` largest drawdowns
+    """
     # Average drawdown must be calculated for each series individually
     if isinstance(timeseries, pd.DataFrame):
         return timeseries.aggregate(lambda s: avg_drawdown(s, 3))
@@ -453,12 +508,41 @@ def avg_drawdown(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> float | pd
 def calmar(
     timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
 ) -> float | pd.Series:
+    """Calmar ratio (aka drawdown ratio) is a Sharpe-like ratio that uses
+    maximum drawdown as the investor's risk instead of standard deviation.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    rfr_annualized : float, optional
+        Annualized risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        The Calmar ratio
+    """
     return (compound_return(timeseries, True) - rfr_annualized) / -worst_drawdown(
         timeseries
     )
 
 
 def sterling(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """The original Sterling ratio proposed by Deane Sterling Jones is the
+    ratio between cummulative annualized return and the average drawdown
+    plus 10%.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Sterling ratio
+    """
     return compound_return(timeseries, True) / np.absolute(
         avg_annual_drawdown(timeseries) - 0.1
     )
@@ -467,6 +551,24 @@ def sterling(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
 def sterling_modified(
     timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3
 ) -> float | pd.Series:
+    """Modified Sterling ratio, proposed by Carl Bacon, is a Sharpe-like ratio
+    that uses average largest drawdown as the investor's risk instead of
+    standard deviation.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    rfr_annualized : float, optional
+        Annualized risk-free rate, by default 0
+    d : int, optional
+        Number of observations, by default 3
+
+    Returns
+    -------
+    float | pd.Series
+        _description_
+    """
     return (compound_return(timeseries, True) - rfr_annualized) / np.absolute(
         avg_drawdown(timeseries, d)
     )
@@ -475,6 +577,21 @@ def sterling_modified(
 def sterling_calmar(
     timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
 ) -> float | pd.Series:
+    """Sterling-Calmar ratio is a Sharpe-like ratio that uses average
+    annual drawdown as the investor's risk instead of standard deviation.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    rfr_annualized : float, optional
+        Annualized risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Sterling-Calmar ratio
+    """
     return (compound_return(timeseries, True) - rfr_annualized) / -avg_annual_drawdown(
         timeseries
     )
@@ -492,14 +609,14 @@ def drawdown_deviation(
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     d : int, optional
-        _description_, by default 3
+        Number of observations, by default 3
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Drawdown deviation, always negative
     """
     return -np.sqrt((all_drawdown(timeseries)[:d] ** 2).sum() / (len(timeseries)))
 
@@ -513,16 +630,16 @@ def burke_modified(
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     rfr_annualized : float, optional
-        _description_, by default 0
+        Annualized risk-free rate, by default 0
     d : int, optional
-        _description_, by default 3
+        Number of observations, by default 3
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Modified Burke ratio
     """
     return (compound_return(timeseries, True) - rfr_annualized) / -drawdown_deviation(
         timeseries, d
@@ -531,6 +648,18 @@ def burke_modified(
 
 @_requireprice
 def underwater(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
+    """Distance from its previous peak
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of prices
+
+    Returns
+    -------
+    pd.Series | pd.DataFrame
+        Distance from its previous peak, always negative
+    """
     return timeseries / timeseries.cummax() - 1
 
 
@@ -543,12 +672,12 @@ def ulcer_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Ulcer index
     """
     return np.sqrt((underwater(timeseries) ** 2).sum() / len(timeseries))
 
@@ -562,12 +691,12 @@ def pain_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Pain index
     """
     return np.absolute(underwater(timeseries)).sum() / len(timeseries)
 
@@ -575,22 +704,22 @@ def pain_index(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
 def martin(
     timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0
 ) -> float | pd.Series:
-    """Martin ratio is a Sharpe-like ratio but uses the ulcer index in the
-    denominator.
+    """Martin ratio (or ulcer performance index) is a Sharpe-like ratio but
+    uses the ulcer index in the denominator.
 
     Also know as ulcer performance index.
 
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     rfr_annualized : float, optional
-        _description_, by default 0
+        Annualized risk-free rate, by default 0
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Martin ratio
     """
     return (compound_return(timeseries, True) - rfr_annualized) / ulcer_index(
         timeseries
@@ -606,14 +735,14 @@ def pain(
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     rfr_annualized : float, optional
-        _description_, by default 0
+        Annualized risk-free rate, by default 0
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Pain ratio
     """
     return (compound_return(timeseries, True) - rfr_annualized) / pain_index(timeseries)
 
@@ -622,6 +751,20 @@ def pain(
 def downside_potential(
     timeseries: pd.Series | pd.DataFrame, mar: float = 0
 ) -> float | pd.Series:
+    """Downside potential is the average sum of returns below target
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    mar : float, optional
+        Target periodic return, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Downside potential
+    """
     return (mar - timeseries[timeseries < mar]).sum() / len(timeseries)
 
 
@@ -629,6 +772,20 @@ def downside_potential(
 def upside_potential(
     timeseries: pd.Series | pd.DataFrame, mar: float = 0
 ) -> float | pd.Series:
+    """Upside potential is the average sum of returns above target
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    mar : float, optional
+        Target periodic return, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Upside potential
+    """
     return (timeseries[timeseries > mar] - mar).sum() / len(timeseries)
 
 
@@ -648,18 +805,18 @@ def downside_risk(
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     mar : float, optional
-        _description_, by default 0
+        Target periodic return, by default 0
     annualize : bool, optional
-        _description_, by default False
+        Specifiy if downside risk should be annualized, by default False
     ddof: int, optional
         Delta Degrees of Freedom, by default 0
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Downside Risk
     """
     dr = np.sqrt(
         ((mar - timeseries[timeseries < mar]) ** 2).sum() / (len(timeseries) - ddof)
@@ -676,25 +833,28 @@ def upside_risk(
     annualize: bool = False,
     ddof: int = 0,
 ) -> float | pd.Series:
-    """_summary_
+    """Upside Risk measures the variability of outperformance above a
+    minimum target return.
 
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     mar : float, optional
-        _description_, by default 0
+        Target periodic return, by default 0
     annualize : bool, optional
-        _description_, by default False
-    ddof : int, optional
+        Specifiy if downside risk should be annualized, by default False
+    ddof: int, optional
         Delta Degrees of Freedom, by default 0
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Upside Risk
     """
-    ur = np.sqrt(((timeseries[timeseries > mar] - mar) ** 2).sum() / len(timeseries))
+    ur = np.sqrt(
+        ((timeseries[timeseries > mar] - mar) ** 2).sum() / (len(timeseries) - ddof)
+    )
     if annualize:
         ur *= np.sqrt(periodicity(timeseries))
     return ur
@@ -707,14 +867,14 @@ def omega(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float:
     Parameters
     ----------
     timeseries : pd.Series | pd.DataFrame
-        _description_
+        Series or DataFrame of returns
     mar : float, optional
-        _description_, by default 0
+        Target periodic return, by default 0
 
     Returns
     -------
     float
-        _description_
+        Omega ratio
     """
     return upside_potential(timeseries, mar) / downside_potential(timeseries, mar)
 
@@ -722,6 +882,23 @@ def omega(timeseries: pd.Series | pd.DataFrame, mar: float = 0) -> float:
 def sortino(
     timeseries: pd.Series | pd.DataFrame, mar: float = 0, ddof: int = 0
 ) -> float | pd.Series:
+    """Sortino ratio is a Sharpe-like ratio that uses downside risk as the
+    investor's risk instead of standard deviation.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    mar : float, optional
+        Target periodic return, by default 0
+    ddof : int, optional
+        Delta Degrees of Freedom, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Sortino ratio
+    """
     ann_mar = (1 + mar) ** periodicity(timeseries) - 1
     return (compound_return(timeseries, annualize=True) - ann_mar) / downside_risk(
         timeseries, mar, annualize=True, ddof=ddof
@@ -731,6 +908,21 @@ def sortino(
 def upside_potential_ratio(
     timeseries: pd.Series | pd.DataFrame, mar: float = 0
 ) -> float | pd.Series:
+    """The upside potential ratio is the ration between upside potential and
+    downside risk.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    mar : float, optional
+        Target periodic return, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Upside potential ratio
+    """
     return upside_potential(timeseries, mar) / downside_risk(
         timeseries, mar, annualize=True
     )
@@ -744,49 +936,120 @@ def variability_skewness(
 
     Parameters
     ----------
-    s : pd.Series | pd.DataFrame
-        _description_
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
     mar : float, optional
-        _description_, by default 0
+        Target periodic return, by default 0
 
     Returns
     -------
     float | pd.Series
-        _description_
+        Variability skewness
     """
     return upside_risk(timeseries, mar) / downside_risk(timeseries, mar)
 
 
 # Additional
 
-
 @_requirereturn
-def best_period(timeseries: pd.Series) -> float:
+def best_period(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Return of the best period
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Return of the best period
+    """
     return timeseries.max()
 
 
 @_requirereturn
-def worst_period(timeseries: pd.Series) -> float:
+def worst_period(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Return of the worst period
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Return of the worst period
+    """
     return timeseries.min()
 
 
 @_requirereturn
-def avg_pos(timeseries: pd.Series) -> float:
+def avg_pos(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Average of the positive returns
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Average of the positive returns
+    """
     return timeseries[timeseries >= 0].mean()
 
 
 @_requirereturn
-def avg_neg(timeseries: pd.Series) -> float:
+def avg_neg(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Average of the negative returns
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Average of the negative returns
+    """
     return timeseries[timeseries < 0].mean()
 
 
 @_requirereturn
-def vol_pos(timeseries: pd.Series) -> float:
+def vol_pos(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Volatility of the positive returns
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Volatility of the positive returns
+    """
     return timeseries[timeseries >= 0].std()
 
 
 @_requirereturn
-def vol_neg(timeseries: pd.Series) -> float:
+def vol_neg(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    """Volatility of the negative returns
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    float | pd.Series
+        Volatility of the negative returns
+    """
     return timeseries[timeseries < 0].std()
 
 
@@ -1046,28 +1309,30 @@ def summary(
 # TODO:
 # Accept both 5% (Level of significance) or 95% (Confidence Interval)
 
-# FIXME: Not working for dataframe
+
 @_requirereturn
-def is_normal(timeseries: pd.Series, a: float = 0.01):
+def is_normal(timeseries: pd.Series, sig: float = 0.01) -> bool:
     """Bera‐Jarque statistic.
 
     The test statistic is always nonnegative.
 
-    If p-value > a means null hypothesis (normal) cannot be rejected.
+    p-value > sig means null hypothesis of normality cannot be rejected.
 
     Parameters
     ----------
     timeseries : pd.Series
         _description_
-    a : float, optional
-        Significance level, by default 0.01
+    sig : float, optional
+        Significance level (alpha), by default 0.01
 
     Returns
     -------
-    _type_
-        _description_
+    bool
+        True if normal
     """
-    return scipy.stats.jarque_bera(timeseries)[1] > a
+    if isinstance(timeseries, pd.DataFrame):
+        return timeseries.aggregate(is_normal)
+    return scipy.stats.jarque_bera(timeseries)[1] > sig
 
 
 @_requirereturn

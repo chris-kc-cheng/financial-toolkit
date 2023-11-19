@@ -1,6 +1,7 @@
 """Fixed-income module
 
 """
+from typing import Tuple
 import numpy as np
 from scipy import optimize
 
@@ -34,7 +35,23 @@ def yield_to_maturity(
 
 def _toperiod(
     coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
-):
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Convert coupon and time from annual to period
+
+    Parameters
+    ----------
+    coupon : float, optional
+        Annual coupon rate, by default 0.0 (i.e. zero coupon)
+    ttm : float, optional
+        Time to maturity in year, by default 1.0 (i.e. one year)
+    freq : int, optional
+        Coupon frequency, by default 2 (i.e. semi-annual coupon)
+
+    Returns
+    -------
+    Tuple
+        Tuple of a Series of period and a Series of cash flows
+    """
     t = np.arange(ttm * freq, 0, -1)
     cf = np.ones_like(t) * coupon / freq
     cf[0] += 1
@@ -69,6 +86,25 @@ def bond_price(
 def duration_macaulay(
     y, coupon: float = 0.0, ttm: float = 1.0, freq: int = 2
 ) -> float:
+    """Macaulay duration, which is the average time to receive the cash flows
+    weighted by the present value of cash flows.
+
+    Parameters
+    ----------
+    y : float
+        Yield to maturity, annualized
+    coupon : float, optional
+        Annual coupon rate, by default 0.0 (i.e. zero coupon)
+    ttm : float, optional
+        Time to maturity in year, by default 1.0 (i.e. one year)
+    freq : int, optional
+        Coupon frequency, by default 2 (i.e. semi-annual coupon)
+
+    Returns
+    -------
+    float
+        Macaulay duration
+    """
     t, cf = _toperiod(coupon, ttm, freq)
     dcf = cf / (1 + y / freq) ** t
     return (dcf * t / freq).sum() / dcf.sum()
