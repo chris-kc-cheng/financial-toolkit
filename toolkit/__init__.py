@@ -1,4 +1,6 @@
-"""_summary_
+"""Financial Toolkit Module
+
+Apply data science and machine learning concepts to real-world investment problems
 """
 from .data import *
 from .functional import *

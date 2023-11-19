@@ -1021,7 +1021,7 @@ def avg_neg(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
 
 @_requirereturn
 def vol_pos(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
-    """Volatility of the positive returns
+    """Sample standard deviation of the positive returns
 
     Parameters
     ----------
@@ -1038,7 +1038,7 @@ def vol_pos(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
 
 @_requirereturn
 def vol_neg(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
-    """Volatility of the negative returns
+    """Sample standard deviation of the negative returns
 
     Parameters
     ----------
@@ -1062,24 +1062,48 @@ def vol_neg(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
 
 @_requirereturn
 @_requirebenchmark
-# f, b -> Series of shape (3,) (float, float, float)
-# f, bb -> Series of shape (3,) (float, Series, float)
-# ff, b -> DataFrame of shape (3, n)
-# ff, bb -> DataFrame of shape (3, n), the middle row is Series
-# where n is the number of assets (column) in s
 def regress(
     timeseries: pd.Series | pd.DataFrame,
     benchmark: pd.Series | pd.DataFrame,
     rfr_periodic: float | pd.Series = 0,
 ) -> pd.Series | pd.DataFrame:
+    """Perform single or multiple regression on portfolio returns over
+    benchmarks or factors.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series | pd.DataFrame
+        Benchmark or factor returns. Use Series for simple regression or
+        DataFrame for multiple regression.
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+
+    Returns
+    -------
+    pd.Series | pd.DataFrame
+        Series or DataFrame of regression results
+        Indices of the results are: 'alpha', 'betas', 'r2' and 'r2adj'
+
+        1. Simple regression on a single portfolio (i.e. timeseries is a Series, benchmark is a Series)
+        Return type is a Series of shape (4,) of type (float, float, float, float).
+        2. Multiple regression on a single portfolio (i.e. timeseries is a Series, benchmark is a DataFrame)
+        Return type is a Series of shape (4,) of type (float, Series, float, float).
+        3. Simple regression on `n` portfolios (i.e. timeseries is a DataFrame, benchmark is a Series)
+        Return type is a DataFrame of shape (4, n). Index types are (float, float, float, float).
+        4. Multiple regression on `n` portfolios (i.e. timeseries is a DataFrame, benchmark is a DataFrame)
+        Return type is a DataFrame of shape (4, n). Index types (float, Series, float, float).
+    """
     if isinstance(timeseries, pd.DataFrame):
         return timeseries.aggregate(lambda x: regress(x, benchmark, rfr_periodic))
     result = sm.OLS(timeseries - rfr_periodic, sm.add_constant(benchmark)).fit()
-    alpha = result.params.iloc[0]
-    betas = result.params.iloc[1:].squeeze()  # Series
+    a = result.params.iloc[0]
+    b = result.params.iloc[1:].squeeze()  # Series
     r2 = result.rsquared
     r2adj = result.rsquared_adj
-    return pd.Series([alpha, betas, r2, r2adj], index=["alpha", "betas", "r2", "r2adj"])
+    return pd.Series([a, b, r2, r2adj], index=['alpha', 'betas', 'r2', 'r2adj'])
 
 
 @_requirereturn
@@ -1088,12 +1112,38 @@ def beta(
     timeseries: pd.Series | pd.DataFrame,
     benchmark: pd.Series | pd.DataFrame,
     rfr_periodic: float | pd.Series = 0,
-) -> float | pd.Series | pd.DataFrame:
-    # series & series -> float
-    # series & benchmark(, m) -> Series(m,)
-    # fund(, k) & series -> Series(, k)
-    # fund(, k) & benchmark(, m) -> Series(k,) with the 2nd row being another Series(m,)
-    # Note: benchmark should be already NET of risk-free rate, so this method works for multi-factor analysis
+) -> float | pd.Series:
+    """Regression beta(s) or factor loading(s)
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series | pd.DataFrame
+        Benchmark or factor returns. Use Series for simple regression or
+        DataFrame for multiple regression.
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Regression beta(s) or factor loading(s), return type varies depending on the inputs
+
+        1. Simple regression on a single portfolio (i.e. timeseries is a Series, benchmark is a Series)
+        Return type is a float.
+        2. Multiple regression on a single portfolio (i.e. timeseries is a Series, benchmark is a DataFrame) against `m` benchmarks/factors
+        Return type is a Series of shape (m,).
+        3. Simple regression on `k` portfolios (i.e. timeseries is a DataFrame, benchmark is a Series)
+        Return type is a Series of shape (k,).
+        4. Multiple regression on `k` portfolios (i.e. timeseries is a DataFrame, benchmark is a DataFrame) against `m` benchmarks/factors
+        Return type is a Series of shape (k,). Each value is another Series of shape (m,)
+
+    Note
+    ----
+    Benchmark should be already NET of risk-free rate, so this method works for multi-factor analysis
+    """    
     return regress(timeseries, benchmark, rfr_periodic).iloc[1]
 
 
@@ -1104,7 +1154,35 @@ def alpha(
     benchmark: pd.Series | pd.DataFrame,
     rfr_periodic: float | pd.Series = 0,
     annualize=False,
-) -> float | pd.Series | pd.DataFrame:
+) -> float | pd.Series:
+    """Jensen's alpha(s)
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series | pd.DataFrame
+        Benchmark or factor returns. Use Series for simple regression or
+        DataFrame for multiple regression.
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+    annualize : bool, optional
+        Specify if alpha should be annualized, by default False
+        Note that alpha is annualized by multiplying it by number of periods in
+        a year. See Bacon's book for other ways of annualizing regression
+        alpha or Jensen's alpha.
+
+    Returns
+    -------
+    float | pd.Series
+        Jensen's alpha(s), return type varies depending on the inputs
+
+        1. Simple or multiple regression on a single portfolio (i.e. timeseries is a Series, benchmark is either a Series or a DataFrame)
+        Return type is a float.
+        2. Simple or multiple regression on `k` portfolios (i.e. timeseries is a DataFrame, benchmark is either a Series or a DataFrame)
+        Return type is a Series of shape (k,).
+    """
     a = regress(timeseries, benchmark, rfr_periodic).iloc[0]
     if annualize:
         # Sharpe's definition
@@ -1121,18 +1199,64 @@ def rsquared(
     rfr_periodic: float | pd.Series = 0,
     adjusted: bool = False,
 ) -> float | pd.Series | pd.DataFrame:
+    """Coefficient of determination (or R-squared) is the variation in the
+    dependent variable that is explained by the independent variable(s).
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series | pd.DataFrame
+        Benchmark or factor returns. Use Series for simple regression or
+        DataFrame for multiple regression.
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+    adjusted : bool, optional
+        Specify if R-squared should be penalized for including extra variables in the model, by default False
+
+    Returns
+    -------
+    float | pd.Series | pd.DataFrame
+        R-squared, return type varies depending on the inputs
+
+        1. Simple or multiple regression on a single portfolio (i.e. timeseries is a Series, benchmark is either a Series or a DataFrame)
+        Return type is a float.
+        2. Simple or multiple regression on `k` portfolios (i.e. timeseries is a DataFrame, benchmark is either a Series or a DataFrame)
+        Return type is a Series of shape (k,).
+    """
     result = regress(timeseries, benchmark, rfr_periodic)
     return result.iloc[3] if adjusted else result.iloc[2]
 
 
+# Unlike pure beta, it doens't make sense to calcualte bull/bear beta on multiple indices, so benchmark must not be a DataFrame
+
 @_requirereturn
 @_requirebenchmark
-# Unlike pure beta, it doens't make sense to calcualte bull/bear beta on multiple indices, so benchmark must not be a DataFrame
 def bull_beta(
     timeseries: pd.Series | pd.DataFrame,
     benchmark: pd.Series,
     rfr_periodic: float | pd.Series = 0,
-) -> float | pd.Series | pd.DataFrame:
+) -> float | pd.Series:
+    """Bull beta is the beta of the regression during periods that benchmark
+    returns are positive.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Bull beta(s), as float for single portfolio or Series for multiple
+        portfolios
+    """
     bull = benchmark > rfr_periodic
     return beta(
         timeseries[bull].subtract(rfr_periodic[bull], axis=0),
@@ -1146,7 +1270,26 @@ def bear_beta(
     timeseries: pd.Series | pd.DataFrame,
     benchmark: pd.Series,
     rfr_periodic: float | pd.Series = 0,
-) -> float | pd.Series | pd.DataFrame:
+) -> float | pd.Series:
+    """Bear beta is the beta of the regression during periods that benchmark
+    returns are negative.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Bear beta, as float for single portfolio or Series for multiple
+        portfolios
+    """
     bear = benchmark < rfr_periodic
     return beta(
         timeseries[bear].subtract(rfr_periodic[bear], axis=0),
@@ -1156,9 +1299,28 @@ def bear_beta(
 
 def beta_timing_ratio(
     timeseries: pd.Series | pd.DataFrame,
-    benchmark: pd.Series | pd.DataFrame,
+    benchmark: pd.Series,
     rfr_periodic: float | pd.Series = 0,
-) -> float | pd.Series | pd.DataFrame:
+) -> float | pd.Series:
+    """Beta timing ratio measures portfolio manager's ability to time the
+    market.
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Beta timing ratio, as float for single portfolio or Series for multiple
+        portfolios
+    """
     return bull_beta(timeseries, benchmark, rfr_periodic) / bear_beta(
         timeseries, benchmark, rfr_periodic
     )
@@ -1170,11 +1332,29 @@ def beta_timing_ratio(
 def treynor(
     timeseries: pd.Series | pd.DataFrame,
     benchmark: pd.Series,
-    rfr_periodic: float | pd.Series = 0,
-    annualize=True,
+    rfr_periodic: float | pd.Series = 0
 ) -> float | pd.Series:
+    """Treynor ratio (reward to volatility) is a Sharpe-like ratio
+    that uses beta as the investor's risk instead of standard deviation.
+
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    rfr_periodic : float | pd.Series, optional
+        Annual risk-free rate, by default 0
+
+    Returns
+    -------
+    float | pd.Series
+        Treynor ratio
+    """
     rfr_annualized = compound_return(rfr_periodic, annualize=True)
-    return (compound_return(timeseries, annualize) - rfr_annualized) / beta(
+    return (compound_return(timeseries, True) - rfr_annualized) / beta(
         timeseries, benchmark, rfr_periodic
     )
 
@@ -1186,6 +1366,24 @@ def tracking_error(
     benchmark: pd.Series | pd.DataFrame,
     annualize: bool = False,
 ) -> float | pd.Series:
+    """Tracking error (or tracking risk, relative risk, active risk) is the
+    standard deviation of the difference between the returns of a portfolio and the benchmark
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    annualize : bool, optional
+        Specify if tracking error should be annualized, by default False
+
+    Returns
+    -------
+    float | pd.Series
+        Tracking error
+    """
     return volatility(timeseries.subtract(benchmark, axis=0), annualize)
 
 
@@ -1196,8 +1394,24 @@ def active_return(
     benchmark: pd.Series | pd.DataFrame,
     annualize=True,
 ) -> float | pd.Series:
-    # Arithmetic
-    return compound_return(timeseries, True) - compound_return(benchmark, True)
+    """Arithmetic excess return over benchmark
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    annualize : bool, optional
+        Specify if active return should be annualized, by default False
+
+    Returns
+    -------
+    float | pd.Series
+        Excess return
+    """
+    return compound_return(timeseries, annualize) - compound_return(benchmark, annualize)
 
 
 @_requirereturn
@@ -1205,7 +1419,23 @@ def active_return(
 def information_ratio(
     timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame
 ) -> float | pd.Series:
-    # Arithmetic
+    """Information ratio is a Sharpe-like ratio except it uses excess returns
+    instead of absolute returns and tracking error (or relative risk) instead
+    of absolute risk. 
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+
+    Returns
+    -------
+    float | pd.Series
+        Information ratio
+    """
     return active_return(timeseries, benchmark, True) / tracking_error(
         timeseries, benchmark, True
     )
@@ -1218,7 +1448,26 @@ def summary(
     benchmark: pd.Series,
     rfr_periodic,
     mar: float = 0,
-):
+) -> dict:
+    """The most common performance and risk measures
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Portfolio returns. Use Series for a single portfolio or DataFrame
+        for multiple portfolios.
+    benchmark : pd.Series
+        Benchmark returns
+    rfr_periodic : _type_
+        Periodic risk-free rate
+    mar : float, optional
+        Target periodic return, by default 0
+
+    Returns
+    -------
+    dict
+        A dictionary of the common performance and risk measures
+    """
     rfr_annualized = compound_return(rfr_periodic, annualize=True)
     s_rfr = timeseries.subtract(rfr_periodic, axis=0)
     mkt_rfr = benchmark - rfr_periodic
@@ -1306,10 +1555,6 @@ def summary(
     return sd
 
 
-# TODO:
-# Accept both 5% (Level of significance) or 95% (Confidence Interval)
-
-
 @_requirereturn
 def is_normal(timeseries: pd.Series, sig: float = 0.01) -> bool:
     """Bera‐Jarque statistic.
@@ -1321,7 +1566,7 @@ def is_normal(timeseries: pd.Series, sig: float = 0.01) -> bool:
     Parameters
     ----------
     timeseries : pd.Series
-        _description_
+        Series or DataFrame of returns
     sig : float, optional
         Significance level (alpha), by default 0.01
 
@@ -1336,62 +1581,62 @@ def is_normal(timeseries: pd.Series, sig: float = 0.01) -> bool:
 
 
 @_requirereturn
-def var_historical(timeseries: pd.Series, alpha: float = 0.95) -> float:
+def var_historical(timeseries: pd.Series | pd.DataFrame, sig: float = 0.05) -> float | pd.Series:
     """Historical Value-at-Risk
 
     Parameters
     ----------
-    timeseries : pd.Series
-        _description_
-    alpha : float, optional
-        _description_, by default 0.05
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    sig : float, optional
+        Significance level (alpha), by default 0.05
 
     Returns
     -------
-    float
+    float | pd.Series
         VaR, reported as a negative number
     """
-    a = min(alpha, 1 - alpha)
+    a = min(sig, 1 - sig)
     return timeseries.quantile(a)
 
 
-def var_normal(timeseries: pd.Series, alpha: float = 0.95) -> float:
+def var_normal(timeseries: pd.Series | pd.DataFrame, sig: float = 0.05) -> float | pd.Series:
     """Gaussian Value-at-Risk
 
     Parameters
     ----------
-    timeseries : pd.Series
-        _description_
-    alpha : float, optional
-        _description_, by default 0.95
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    sig : float, optional
+        Significance level (alpha), by default 0.05
 
     Returns
     -------
-    float
+    float | pd.Series
         VaR, reported as a negative number
     """
-    z = -abs(scipy.stats.norm.ppf(alpha))
+    z = -abs(scipy.stats.norm.ppf(sig))
     mu = arithmetic_mean(timeseries)
     sigma = volatility(timeseries, annualize=False)
     return mu + sigma * z
 
 
-def var_modified(timeseries: pd.Series, alpha: float = 0.95) -> float:
+def var_modified(timeseries: pd.Series | pd.DataFrame, sig: float = 0.05) -> float | pd.Series:
     """Modified Value-at-Risk
 
     Parameters
     ----------
-    timeseries : pd.Series
-        _description_
-    alpha : float, optional
-        _description_, by default 0.95
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    sig : float, optional
+        Significance level (alpha), by default 0.05
 
     Returns
     -------
-    float
+    float | pd.Series
         mVaR, reported as a negative number
     """
-    z = -abs(scipy.stats.norm.ppf(alpha))
+    z = -abs(scipy.stats.norm.ppf(sig))
     mu = arithmetic_mean(timeseries)
     sigma = volatility(timeseries, annualize=False)
     S = skew(timeseries)
@@ -1407,51 +1652,49 @@ def var_modified(timeseries: pd.Series, alpha: float = 0.95) -> float:
 
 # TODO: Add test case
 @_requirereturn
-def cvar_historical(timeseries: pd.Series, alpha: float = 0.05):
+def cvar_historical(timeseries: pd.Series | pd.DataFrame, sig: float = 0.05) -> float | pd.Series:
     """Historical Conditional Value-at-Risk (CVaR).
 
     Also known as Expected Shortfall (ES).
 
     Parameters
     ----------
-    timeseries : pd.Series
-        _description_
-    alpha : float, optional
-        _description_, by default 0.01
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    sig : float, optional
+        Significance level (alpha), by default 0.05
 
     Returns
     -------
-    _type_
+    float | pd.Series
         CVaR, reported as a negative number
     """
-    return timeseries[timeseries < var_historical(timeseries, alpha)].mean()
+    return timeseries[timeseries < var_historical(timeseries, sig)].mean()
 
 
 # TODO: Add test case
 
 
-def cvar_normal(timeseries: pd.Series, alpha: float = 0.95, annualize=False):
+def cvar_normal(timeseries: pd.Series | pd.DataFrame, sig: float = 0.05) -> float | pd.Series:
     """Gaussian Conditional Value-at-Risk (CVaR).
 
     Also known as Expected Shortfall (ES).
 
     Parameters
     ----------
-    timeseries : pd.Series
-        _description_
-    alpha : float, optional
-        _description_, by default 0.95
-    annualize : bool, optional
-        _description_, by default False
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of returns
+    sig : float, optional
+        Significance level (alpha), by default 0.05
 
     Returns
     -------
-    _type_
+    float | pd.Series
         CVaR, reported as a negative number
     """
-    a = min(alpha, 1 - alpha)
+    a = min(sig, 1 - sig)
     mu = arithmetic_mean(timeseries)
-    sigma = volatility(timeseries, annualize)
+    sigma = volatility(timeseries, False)
     return mu - sigma * scipy.stats.norm.pdf(scipy.stats.norm.ppf(a)) / a
 
 
@@ -1459,7 +1702,22 @@ def cvar_normal(timeseries: pd.Series, alpha: float = 0.95, annualize=False):
 @_requirebenchmark
 def up_capture(
     timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame
-):
+) -> float | pd.Series:
+    """Up-market capture ratio
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of portfolio returns
+    benchmark : pd.Series | pd.DataFrame
+        Series or DataFrame of benchmark returns.
+        If timeseries is a Series, benchmark must also be a Series.
+
+    Returns
+    -------
+    float | pd.Series
+        Up-market capture ratio
+    """
     up = benchmark >= 0
     return compound_return(timeseries[up]) / compound_return(benchmark[up])
 
@@ -1468,12 +1726,41 @@ def up_capture(
 @_requirebenchmark
 def down_capture(
     timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame
-):
+) -> float | pd.Series:
+    """Down-market capture ratio
+
+    Parameters
+    ----------
+    timeseries : pd.Series | pd.DataFrame
+        Series or DataFrame of portfolio returns
+    benchmark : pd.Series | pd.DataFrame
+        Series or DataFrame of benchmark returns.
+        If timeseries is a Series, benchmark must also be a Series.
+
+    Returns
+    -------
+    float | pd.Series
+        Down-market capture ratio
+    """
     down = benchmark < 0
     return compound_return(timeseries[down]) / compound_return(benchmark[down])
 
 
-def carino(r, b):
+def carino(r: float, b: float) -> float:
+    """Smoothing algorithm for multi-period attribution
+
+    Parameters
+    ----------
+    r : float
+        Portfolio return
+    b : float
+        Benchmark return
+
+    Returns
+    -------
+    float
+        Carino factor
+    """
     return np.where(r == b, 1 / (1 + r), (np.log1p(r) - np.log1p(b)) / (r - b))
 
 

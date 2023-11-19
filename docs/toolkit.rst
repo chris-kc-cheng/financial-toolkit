@@ -1,9 +1,16 @@
 toolkit package
 ===============
 
+Module contents
+---------------
+
+.. automodule:: toolkit
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
 Submodules
 ----------
-
 
 toolkit.data module
 -------------------
@@ -41,14 +48,6 @@ toolkit.portfolio module
 ------------------------
 
 .. automodule:: toolkit.portfolio
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: toolkit
    :members:
    :undoc-members:
    :show-inheritance:
