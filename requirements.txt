@@ -6,3 +6,4 @@ statsmodels
 scikit-learn
 yfinance
 xlrd
+setuptools
