@@ -58,7 +58,7 @@ class TestFunctional(unittest.TestCase):
             143.96,
             145.4,
         ],
-        index=pd.date_range("1999-12", periods=37, freq="M"),
+        index=pd.date_range("1999-12", periods=37, freq="ME"),
     )
     benchmark_price = pd.Series(
         [
@@ -100,7 +100,7 @@ class TestFunctional(unittest.TestCase):
             147.49,
             150.59,
         ],
-        index=pd.date_range("1999-12", periods=37, freq="M"),
+        index=pd.date_range("1999-12", periods=37, freq="ME"),
     )
     risk_free_return = pd.Series(
         [

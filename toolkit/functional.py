@@ -11,7 +11,7 @@ import pandas as pd
 import statsmodels.api as sm
 
 # Constant used for annualizing returns and volatilities
-PERIODICITY = {"D": 365, "B": 252, "W": 52, "M": 12, "Q": 4, "A": 1}
+PERIODICITY = {"D": 252, "W": 52, "M": 12, "Q": 4, "Y": 1}
 
 
 def periodicity(timeseries: pd.Series | pd.DataFrame) -> int:
@@ -46,7 +46,7 @@ def price_to_return(timeseries: pd.Series | pd.DataFrame) -> pd.Series | pd.Data
     freq = timeseries.index.freqstr
     s = timeseries.pct_change(fill_method=None)
     # PeriodDtype[B] is deprecated
-    s.index = timeseries.index.to_period("D" if freq == "B" else freq)
+    s.index = timeseries.index.to_period("M" if freq == "ME" else freq)
     return s.iloc[1:]
 
 

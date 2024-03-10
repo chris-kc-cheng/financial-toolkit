@@ -1,6 +1,5 @@
 import unittest
 import pandas as pd
-import pandas_datareader as pdr
 import toolkit as ftk
 
 class TestFamaFrench(unittest.TestCase):

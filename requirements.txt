@@ -5,3 +5,4 @@ pandas-datareader
 statsmodels
 scikit-learn
 yfinance
+xlrd
