@@ -9,5 +9,6 @@
     "python.testing.pytestEnabled": false,
     "python.testing.unittestEnabled": true,
     "jupyter.notebookFileRoot": "${workspaceFolder}",
-    "python.linting.pylintPath":" ${workspaceFolder}"
+    "python.linting.pylintPath":" ${workspaceFolder}",
+    "editor.formatOnSave": true
 }

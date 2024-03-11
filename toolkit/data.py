@@ -90,7 +90,8 @@ def get_msci(
         end_date: str = get_last_business_day().strftime("%Y%m%d"),
         fx: str = "USD",
         variant: str = "STRD",
-        freq: str = "END_OF_MONTH") -> pd.DataFrame:
+        freq: str = "END_OF_MONTH",
+        ror: bool = True) -> pd.DataFrame:
     """Download the historical index value of multiple indexes.
 
     Parameters
@@ -106,11 +107,28 @@ def get_msci(
         Index Level ('STRD' for Price, 'NETR' for Net, 'GRTR' for Gross), by default "STRD"
     freq : str, optional
         Data Frequency, by default "END_OF_MONTH"
+    ror : bool, optional
+        Convert from index value to return, by default True
 
     Returns
     -------
     pd.DataFrame
-        Time series of the index values
+        Time series of the index values. Index is DatetimeIndex (freq=None).
     """
     url = f'https://app2-nv.msci.com/products/service/index/indexmaster/downloadLevelData?output=INDEX_LEVELS&currency_symbol={fx}&index_variant={variant}&start_date=19691231&end_date={end_date}&data_frequency={freq}&baseValue=false&index_codes={",".join(map(str, codes))}'
-    return pd.read_excel(url, thousands=',', parse_dates=[0], skiprows=6, skipfooter=19).set_index('Date')
+    df = pd.read_excel(url, thousands=',', parse_dates=[
+                       0], skiprows=6, skipfooter=19).set_index('Date')
+    if ror:
+        df = df.pct_change().to_period('M')
+    return df
+
+
+def get_eurekahedge() -> pd.DataFrame:
+    """Download the historical index value of all hedge fund indexes.
+
+    Returns
+    -------
+    pd.DataFrame
+        Time series of the monthly returns. Index is PeriodIndex.
+    """
+    return pd.read_csv("https://www.eurekahedge.com/df/Eurekahedge_indices.zip", parse_dates=['Date'], index_col=[0, 1, 2], na_values=' ').squeeze().unstack().T.to_period('M') / 100.0

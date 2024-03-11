@@ -6,4 +6,10 @@ statsmodels
 scikit-learn
 yfinance
 xlrd
+
+# Replaced distutils
 setuptools
+
+# Notebooks
+ipywidgets
+matplotlib
