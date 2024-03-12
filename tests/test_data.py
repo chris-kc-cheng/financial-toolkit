@@ -1,6 +1,7 @@
 import unittest
 import toolkit as ftk
 
+
 class TestData(unittest.TestCase):
 
     def test_yahoo(self):
@@ -12,5 +13,5 @@ class TestData(unittest.TestCase):
         ftk.get_famafrench_factors(ds[0])
 
     def test_msci(self):
-        acwi = ftk.get_msci([892400])
+        acwi = ftk.get_msci([892400], ror=False)
         self.assertAlmostEqual(acwi.loc['2023-12-29'].iloc[0], 726.996)
