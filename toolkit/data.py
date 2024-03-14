@@ -2,17 +2,95 @@
 
     - Yahoo! Finance
     - Ken French’s Data Library
+    - Federal Reserve Economic Data
+    - Bank of Canada
+    - Statistics Canada
     - MSCI
     - Eurekahedge
 """
+import io
 import re
 import datetime
+import urllib
 import requests
 import pandas as pd
 import pandas_datareader as pdr
 import yfinance as yf
 
-# Fama French
+
+def today() -> datetime.date:
+    """Today
+
+    Returns
+    -------
+    datetime.date
+        Today
+    """
+    return datetime.datetime.today().date()
+
+
+def last_business_day(date=today()):
+    return (date - datetime.timedelta(days=max(0, date.weekday() - 4)))
+
+
+def end_of_month(date: datetime.date = today(), n: int = 0) -> datetime.date:
+    """Last day of the month that is `n` months after the specified date.
+    Similar to the `EOMONTH` function in Excel.
+
+    Parameters
+    ----------
+    date : datetime.date, optional
+        A date, by default today()
+    n : int, optional
+        Number of months, by default 0. A positive value yields a month in the future,
+        a negative value yields a month in the past.
+
+    Returns
+    -------
+    datetime.date
+        _description_
+    """
+    year = date.year + (date.month + n) // 12
+    month = (date.month + n) % 12 + 1
+    return datetime.date(year, month, 1) - datetime.timedelta(days=1)
+
+
+def end_of_quarter(date: datetime.date = today(), n: int = 0) -> datetime.date:
+    """Last day of the calendar quarter that is `n` quarters after the specified date.
+
+    Parameters
+    ----------
+    date : datetime.date, optional
+        A date, by default today()
+    n : int, optional
+        Number of quarters, by default 0. A positive value yields a quarter in the future,
+        a negative value yields a quarter in the past.
+
+    Returns
+    -------
+    datetime.date
+        _description_
+    """
+    return end_of_month(date, 2 - ((date.month - 1) % 3) + 3 * n)
+
+
+def end_of_year(date: datetime.date = today(), n: int = 0) -> datetime.date:
+    """Last date of the calendar year that is `n` years after the specified date.
+
+    Parameters
+    ----------
+    date : datetime.date, optional
+        A date, by default today()
+    n : int, optional
+        Number of years, by default 0. A positive value yields a year in the future,
+        a negative value yields a year in the past.
+
+    Returns
+    -------
+    datetime.date
+        _description_
+    """
+    return end_of_month(date, -date.month + 12 * n + 12)
 
 
 def get_famafrench_datasets() -> list:
@@ -82,13 +160,9 @@ def get_yahoo_bulk(tickers: list, period: str = "max") -> pd.DataFrame:
     return yf.download(" ".join(tickers), period=period)["Adj Close"].asfreq("B")
 
 
-def get_last_business_day(d=datetime.datetime.today()):
-    return (d - datetime.timedelta(days=max(0, d.weekday() - 4))).date()
-
-
 def get_msci(
         codes: list,
-        end_date: str = get_last_business_day().strftime("%Y%m%d"),
+        end_date: str = last_business_day().strftime("%Y%m%d"),
         fx: str = "USD",
         variant: str = "STRD",
         freq: str = "END_OF_MONTH",
@@ -135,7 +209,7 @@ def get_eurekahedge() -> pd.DataFrame:
     return pd.read_csv("https://www.eurekahedge.com/df/Eurekahedge_indices.zip", parse_dates=['Date'], index_col=[0, 1, 2], na_values=' ').squeeze().unstack().T.to_period('M') / 100.0
 
 
-def get_statcan_bulk(ids: list, n: int = 24) -> pd.DataFrame:
+def get_statcan_bulk(ids: list, n: int = 25) -> pd.DataFrame:
     """Download the historical data from Statisticas Canada
 
     Parameters
@@ -160,16 +234,16 @@ def get_statcan_bulk(ids: list, n: int = 24) -> pd.DataFrame:
     return df.sort_index()
 
 
-def get_fred_bulk(ids: list = [], start=datetime.datetime.today() - datetime.timedelta(days=2 * 365), end=datetime.datetime.today()) -> pd.DataFrame:
+def get_fred_bulk(ids: list = [], start: datetime.date = end_of_month(n=-25), end: datetime.date = today()) -> pd.DataFrame:
     """Download the historical Federal Reserve Economic Data (FRED) from Frederal Reserver Bank of St. Louis
 
     Parameters
     ----------
     ids : list, optional
         List of series Ids, by default []
-    start : _type_, optional
+    start : datetime.date, optional
         Start date, by default 2 years before today
-    end : _type_, optional
+    end : datetime.date, optional
         End date, by default today
 
     Returns
@@ -181,7 +255,7 @@ def get_fred_bulk(ids: list = [], start=datetime.datetime.today() - datetime.tim
     return df.groupby(pd.Grouper(freq="ME")).last()
 
 
-def get_us_yield_curve(year: int = datetime.datetime.today().year, n: int = 2) -> pd.DataFrame:
+def get_us_yield_curve(year: int = today().year, n: int = 2) -> pd.DataFrame:
     """Download the historical Treasury Par Yield Curve Rates
 
     Parameters
@@ -201,3 +275,25 @@ def get_us_yield_curve(year: int = datetime.datetime.today().year, n: int = 2) -
     df = pd.concat(data, axis=0)
     df.index = pd.to_datetime(df.index)
     return df.sort_index()
+
+
+def get_boc_bulk(ids: list, start: datetime.date = end_of_month(n=-25), end: datetime.date = end_of_month()) -> pd.DataFrame:
+    """Download the historical data from Bank of Canada
+
+    Parameters
+    ----------
+    ids : list
+        List of series names
+    start : datetime.date, optional
+        Start date, by default end_of_month(n=-25)
+    end : datetime.date, optional
+        End date, by default end_of_month()
+
+    Returns
+    -------
+    pd.DataFrame
+        _description_
+    """
+    url = f'https://www.bankofcanada.ca/valet/observations/{urllib.parse.quote(",".join(ids))}/csv?start_date={start.strftime("%Y-%m-%d")}&end_date={end.strftime("%Y-%m-%d")}'
+    csv = requests.get(url, verify=False)
+    return pd.read_csv(io.StringIO(csv.text.split('"OBSERVATIONS"\r\n')[1]), parse_dates=["date"]).set_index("date").loc[:, ids]
