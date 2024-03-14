@@ -147,7 +147,8 @@ class TestFunctional(unittest.TestCase):
 
     def test_periodicity(self):
         for p in ftk.PERIODICITY:
-            s = pd.Series([0], index=pd.period_range("2000-01-01", periods=1, freq=p))
+            s = pd.Series([0], index=pd.period_range(
+                "2000-01-01", periods=1, freq=p))
             self.assertEqual(ftk.periodicity(s), ftk.PERIODICITY[p])
             df = pd.concat([s, s], axis=1)
             self.assertEqual(ftk.periodicity(df), ftk.PERIODICITY[p])
@@ -202,7 +203,8 @@ class TestFunctional(unittest.TestCase):
         nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
 
         # Expected
-        pd.concat([jpy_p / cad_p, cad_p / jpy_p], axis=1).prod(axis=1)  # All ones
+        pd.concat([jpy_p / cad_p, cad_p / jpy_p],
+                  axis=1).prod(axis=1)  # All ones
         jpy_cad.div(jpy_p, axis=0).iloc[:, 0]  # Ones, with some na
         jpy_cad.div(cad_p, axis=0).iloc[:, 1]
 
@@ -230,7 +232,8 @@ class TestFunctional(unittest.TestCase):
     def test_compound_return(self):
         self.assertAlmostEqual(ftk.compound_return(p, False), -0.12)
         self.assertAlmostEqual(ftk.compound_return(r, False), -0.12)
-        self.assertAlmostEqual(ftk.compound_return(r, False), (1 + r).prod() - 1)
+        self.assertAlmostEqual(ftk.compound_return(
+            r, False), (1 + r).prod() - 1)
         self.assertAlmostEqual(ftk.compound_return(pp, False)[0], -0.12)
         self.assertAlmostEqual(ftk.compound_return(rr, False)[1], -0.12)
 
@@ -243,10 +246,12 @@ class TestFunctional(unittest.TestCase):
             ftk.skew(rr), scipy.stats.skew(rr, bias=False)
         )
 
-        self.assertAlmostEqual(ftk.kurt(r), scipy.stats.kurtosis(r, bias=False))
+        self.assertAlmostEqual(
+            ftk.kurt(r), scipy.stats.kurtosis(r, bias=False))
         self.assertAlmostEqual(
             ftk.kurt(r),
-            (n - 1) / (n - 2) / (n - 3) * ((n + 1) * scipy.stats.kurtosis(r) + 6),
+            (n - 1) / (n - 2) / (n - 3) *
+            ((n + 1) * scipy.stats.kurtosis(r) + 6),
         )
         np.testing.assert_array_almost_equal(
             ftk.kurt(rr), scipy.stats.kurtosis(rr, bias=False)
@@ -258,7 +263,8 @@ class TestFunctional(unittest.TestCase):
             ftk.arithmetic_mean(rr), rr.sum() / len(rr)
         )
 
-        self.assertAlmostEqual(ftk.geometric_mean(r), scipy.stats.gmean(1 + r) - 1)
+        self.assertAlmostEqual(ftk.geometric_mean(
+            r), scipy.stats.gmean(1 + r) - 1)
         np.testing.assert_array_almost_equal(
             ftk.geometric_mean(rr), scipy.stats.gmean(1 + rr) - 1
         )
@@ -270,7 +276,8 @@ class TestFunctional(unittest.TestCase):
             ftk.compound_return(self.unit_price, annualize=True), 0.1329, 4
         )
         self.assertAlmostEqual(ftk.mean_abs_dev(self.unit_price), 0.0252, 4)
-        self.assertAlmostEqual(ftk.variance(self.unit_price), 0.0011 * 36 / 35, 4)
+        self.assertAlmostEqual(ftk.variance(
+            self.unit_price), 0.0011 * 36 / 35, 4)
         self.assertAlmostEqual(ftk.volatility(self.unit_price), 0.0336, 4)
         self.assertAlmostEqual(
             ftk.volatility(self.unit_price, annualize=True),
@@ -282,7 +289,8 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(
             ftk.covariance(self.price_df).iloc[0, 1], 0.001109 * 36 / 35, 6
         )
-        self.assertAlmostEqual(ftk.correlation(self.price_df).iloc[0, 1], 0.995, 3)
+        self.assertAlmostEqual(ftk.correlation(
+            self.price_df).iloc[0, 1], 0.995, 3)
         self.assertAlmostEqual(ftk.sharpe(self.unit_price, 0.0243), 0.93, 2)
 
     def test_relative_risk(self):
@@ -297,7 +305,8 @@ class TestFunctional(unittest.TestCase):
             3,
         )
         self.assertAlmostEqual(
-            ftk.information_ratio(self.unit_price, self.benchmark_price), -1.1, 1
+            ftk.information_ratio(
+                self.unit_price, self.benchmark_price), -1.1, 1
         )
 
     def test_regression(self):
@@ -319,12 +328,14 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.alpha(unit_rfr, benchmark_rfr), -0.00082, 5)
 
         self.assertAlmostEqual(
-            ftk.bull_beta(self.unit_price, self.benchmark_price, self.risk_free_return),
+            ftk.bull_beta(self.unit_price, self.benchmark_price,
+                          self.risk_free_return),
             1.035,
             3,
         )
         self.assertAlmostEqual(
-            ftk.bear_beta(self.unit_price, self.benchmark_price, self.risk_free_return),
+            ftk.bear_beta(self.unit_price, self.benchmark_price,
+                          self.risk_free_return),
             0.948,
             3,
         )
@@ -377,18 +388,24 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(
             ftk.calmar(self.unit_price, rfr_annualized=0.0243), 0.74, 2
         )
-        self.assertAlmostEqual(ftk.avg_drawdown(self.unit_price, d=3), -0.056, 3)
+        self.assertAlmostEqual(ftk.avg_drawdown(
+            self.unit_price, d=3), -0.056, 3)
         # ftk.sterling() # Original
         self.assertAlmostEqual(
-            ftk.sterling_modified(self.unit_price, rfr_annualized=0.0243, d=3), 1.92, 2
+            ftk.sterling_modified(
+                self.unit_price, rfr_annualized=0.0243, d=3), 1.92, 2
         )
-        self.assertAlmostEqual(ftk.drawdown_deviation(self.unit_price, d=3), -0.0245, 4)
+        self.assertAlmostEqual(ftk.drawdown_deviation(
+            self.unit_price, d=3), -0.0245, 4)
         self.assertAlmostEqual(
-            ftk.burke_modified(self.unit_price, rfr_annualized=0.0243, d=3), 4.43, 1
+            ftk.burke_modified(
+                self.unit_price, rfr_annualized=0.0243, d=3), 4.43, 1
         )  # vs 4.42
-        self.assertAlmostEqual(ftk.avg_annual_drawdown(self.unit_price), -0.0604, 4)
         self.assertAlmostEqual(
-            ftk.sterling_calmar(self.unit_price, rfr_annualized=0.0243), 1.80, 2
+            ftk.avg_annual_drawdown(self.unit_price), -0.0604, 4)
+        self.assertAlmostEqual(
+            ftk.sterling_calmar(
+                self.unit_price, rfr_annualized=0.0243), 1.80, 2
         )
         self.assertAlmostEqual(ftk.pain_index(self.unit_price), 0.0376, 4)
         self.assertAlmostEqual(ftk.pain(self.unit_price, 0.0243), 2.89, 2)
@@ -397,23 +414,28 @@ class TestFunctional(unittest.TestCase):
 
         # Max Upturn
         self.assertAlmostEqual(
-            ftk.max_upturn(ftk.price_to_return(self.unit_price).loc["2000"]), 0.2764, 4
+            ftk.max_upturn(ftk.price_to_return(
+                self.unit_price).loc["2000"]), 0.2764, 4
         )
 
     def test_partial_moments(self):
         self.assertAlmostEqual(
             ftk.downside_potential(self.unit_price, mar=0.005), 0.0101, 4
         )
-        self.assertAlmostEqual(ftk.downside_risk(self.unit_price, mar=0.005), 0.0212, 4)
+        self.assertAlmostEqual(ftk.downside_risk(
+            self.unit_price, mar=0.005), 0.0212, 4)
         self.assertAlmostEqual(
-            ftk.downside_risk(self.unit_price, mar=0.005, annualize=True), 0.0733, 4
+            ftk.downside_risk(self.unit_price, mar=0.005,
+                              annualize=True), 0.0733, 4
         )
         self.assertAlmostEqual(
             ftk.upside_potential(self.unit_price, mar=0.005), 0.0161, 4
         )
-        self.assertAlmostEqual(ftk.upside_risk(self.unit_price, mar=0.005), 0.0262, 4)
+        self.assertAlmostEqual(ftk.upside_risk(
+            self.unit_price, mar=0.005), 0.0262, 4)
         self.assertAlmostEqual(
-            ftk.upside_risk(self.unit_price, mar=0.005, annualize=True), 0.0909, 4
+            ftk.upside_risk(self.unit_price, mar=0.005,
+                            annualize=True), 0.0909, 4
         )
         self.assertAlmostEqual(ftk.omega(self.unit_price, mar=0.005), 1.6, 1)
         self.assertAlmostEqual(
@@ -422,19 +444,23 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(
             ftk.variability_skewness(self.unit_price, 0.005), 1.24, 2
         )
-        self.assertAlmostEqual(ftk.sortino(self.unit_price, mar=0.005), 0.97, 2)
+        self.assertAlmostEqual(ftk.sortino(
+            self.unit_price, mar=0.005), 0.97, 2)
 
     def test_value_at_risk(self):
         for alpha in [0.05, 0.95]:
             self.assertAlmostEqual(
                 ftk.var_historical(self.unit_price, alpha), -0.0520, 4
             )
-            self.assertAlmostEqual(ftk.var_normal(self.unit_price, alpha), -0.0443, 4)
-            self.assertAlmostEqual(ftk.var_modified(self.unit_price, alpha), -0.0465, 4)
+            self.assertAlmostEqual(ftk.var_normal(
+                self.unit_price, alpha), -0.0443, 4)
+            self.assertAlmostEqual(ftk.var_modified(
+                self.unit_price, alpha), -0.0465, 4)
             self.assertAlmostEqual(
                 ftk.cvar_historical(self.unit_price, alpha), -0.0625, 4
             )
-            self.assertAlmostEqual(ftk.cvar_normal(self.unit_price, alpha), -0.0584, 4)
+            self.assertAlmostEqual(ftk.cvar_normal(
+                self.unit_price, alpha), -0.0584, 4)
 
     def test_summary(self):
         summary = ftk.summary(
@@ -462,16 +488,18 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(summary["Calmar"], 0.7425, 4),
         self.assertAlmostEqual(summary["Sterling Original"], 0.8283, 4)
         self.assertAlmostEqual(summary["Average Annual Drawdown"], -0.0604, 4)
-        self.assertAlmostEqual(summary["Downside Risk (Annualized)"], 0.0663, 4)
+        self.assertAlmostEqual(
+            summary["Downside Risk (Annualized)"], 0.0663, 4)
         self.assertAlmostEqual(summary["Omega Ratio"], 2.3382, 4),
         self.assertAlmostEqual(summary["Sortino Ratio"], 2.0034, 4),
         self.assertAlmostEqual(summary["Annualized Active Return"], -0.0133, 4)
         self.assertAlmostEqual(summary["Annualized Tracking Error"], 0.0122, 4)
-        self.assertAlmostEqual(summary["Annualized Information Ratio"], -1.0921, 4)
+        self.assertAlmostEqual(
+            summary["Annualized Information Ratio"], -1.0921, 4)
         self.assertAlmostEqual(summary["Beta"], 0.98, 2)
         self.assertAlmostEqual(summary["Alpha (Annualized)"], -0.0098, 4)
         self.assertAlmostEqual(summary["Correlation"], 0.9947, 4)
         self.assertAlmostEqual(summary["R-Squared"], 0.9894, 4)
         self.assertAlmostEqual(summary["Treynor Ratio"], 0.111, 3)
-        self.assertAlmostEqual(summary["Up Capture"], 0.9276, 4)
+        self.assertAlmostEqual(summary["Up Capture"], 0.9379, 4)
         self.assertAlmostEqual(summary["Down Capture"], 0.9929, 4)

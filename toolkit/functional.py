@@ -819,7 +819,8 @@ def downside_risk(
         Downside Risk
     """
     dr = np.sqrt(
-        ((mar - timeseries[timeseries < mar]) ** 2).sum() / (len(timeseries) - ddof)
+        ((mar - timeseries[timeseries < mar])
+         ** 2).sum() / (len(timeseries) - ddof)
     )
     if annualize:
         dr *= np.sqrt(periodicity(timeseries))
@@ -853,7 +854,8 @@ def upside_risk(
         Upside Risk
     """
     ur = np.sqrt(
-        ((timeseries[timeseries > mar] - mar) ** 2).sum() / (len(timeseries) - ddof)
+        ((timeseries[timeseries > mar] - mar)
+         ** 2).sum() / (len(timeseries) - ddof)
     )
     if annualize:
         ur *= np.sqrt(periodicity(timeseries))
@@ -1098,7 +1100,8 @@ def regress(
     """
     if isinstance(timeseries, pd.DataFrame):
         return timeseries.aggregate(lambda x: regress(x, benchmark, rfr_periodic))
-    result = sm.OLS(timeseries - rfr_periodic, sm.add_constant(benchmark)).fit()
+    result = sm.OLS(timeseries - rfr_periodic,
+                    sm.add_constant(benchmark)).fit()
     a = result.params.iloc[0]
     b = result.params.iloc[1:].squeeze()  # Series
     r2 = result.rsquared
@@ -1143,7 +1146,7 @@ def beta(
     Note
     ----
     Benchmark should be already NET of risk-free rate, so this method works for multi-factor analysis
-    """    
+    """
     return regress(timeseries, benchmark, rfr_periodic).iloc[1]
 
 
@@ -1719,7 +1722,7 @@ def up_capture(
         Up-market capture ratio
     """
     up = benchmark >= 0
-    return compound_return(timeseries[up]) / compound_return(benchmark[up])
+    return compound_return(timeseries[up], annualize=True) / compound_return(benchmark[up], annualize=True)
 
 
 @_requirereturn
@@ -1743,7 +1746,7 @@ def down_capture(
         Down-market capture ratio
     """
     down = benchmark < 0
-    return compound_return(timeseries[down]) / compound_return(benchmark[down])
+    return compound_return(timeseries[down], annualize=True) / compound_return(benchmark[down], annualize=True)
 
 
 def carino(r: float, b: float) -> float:
