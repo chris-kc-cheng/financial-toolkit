@@ -8,6 +8,7 @@
     - MSCI
     - Eurekahedge
 """
+from functools import wraps
 import io
 import re
 import datetime
@@ -18,29 +19,32 @@ import pandas_datareader as pdr
 import yfinance as yf
 
 
-def today() -> datetime.date:
-    """Today
+def _default_date(func):
 
-    Returns
-    -------
-    datetime.date
-        Today
-    """
-    return datetime.datetime.today().date()
+    @wraps(func)
+    def wrapper(**kwargs):
+        if 'date' not in kwargs:
+            kwargs['date'] = datetime.datetime.today().date()
+        return func(**kwargs)
+
+    wrapper.__doc__ = func.__doc__
+    return wrapper
 
 
-def last_business_day(date=today()):
+@_default_date
+def last_business_day(date: datetime.date = None):
     return (date - datetime.timedelta(days=max(0, date.weekday() - 4)))
 
 
-def end_of_month(date: datetime.date = today(), n: int = 0) -> datetime.date:
+@_default_date
+def end_of_month(date: datetime.date = None, n: int = 0) -> datetime.date:
     """Last day of the month that is `n` months after the specified date.
     Similar to the `EOMONTH` function in Excel.
 
     Parameters
     ----------
     date : datetime.date, optional
-        A date, by default today()
+        A date, by default None (i.e. today)
     n : int, optional
         Number of months, by default 0. A positive value yields a month in the future,
         a negative value yields a month in the past.
@@ -55,13 +59,13 @@ def end_of_month(date: datetime.date = today(), n: int = 0) -> datetime.date:
     return datetime.date(year, month, 1) - datetime.timedelta(days=1)
 
 
-def end_of_quarter(date: datetime.date = today(), n: int = 0) -> datetime.date:
+def end_of_quarter(date: datetime.date = None, n: int = 0) -> datetime.date:
     """Last day of the calendar quarter that is `n` quarters after the specified date.
 
     Parameters
     ----------
     date : datetime.date, optional
-        A date, by default today()
+        A date, by default None (i.e. today)
     n : int, optional
         Number of quarters, by default 0. A positive value yields a quarter in the future,
         a negative value yields a quarter in the past.
@@ -74,13 +78,13 @@ def end_of_quarter(date: datetime.date = today(), n: int = 0) -> datetime.date:
     return end_of_month(date, 2 - ((date.month - 1) % 3) + 3 * n)
 
 
-def end_of_year(date: datetime.date = today(), n: int = 0) -> datetime.date:
+def end_of_year(date: datetime.date = None, n: int = 0) -> datetime.date:
     """Last date of the calendar year that is `n` years after the specified date.
 
     Parameters
     ----------
     date : datetime.date, optional
-        A date, by default today()
+        A date, by default None (i.e. today)
     n : int, optional
         Number of years, by default 0. A positive value yields a year in the future,
         a negative value yields a year in the past.
@@ -123,12 +127,12 @@ def get_famafrench_factors(dataset: str, add_momentum: bool = False) -> pd.DataF
 
 
 # Yahoo
-def get_yahoo(ticker: str) -> pd.Series:
+def get_yahoo(ticker: str = "^GSPC") -> pd.Series:
     """Download the historical adjusted closing price of a security with
     ticker `ticker`.
 
     Args:
-        ticker (str): Yahoo! ticker of the security
+        ticker (str): Yahoo! ticker of the security, by default "^GSPC", i.e. S&P 500
 
     Returns:
         pd.Series: Time series of the prices of the security
@@ -140,7 +144,7 @@ def get_yahoo(ticker: str) -> pd.Series:
     return s
 
 
-def get_yahoo_bulk(tickers: list, period: str = "max") -> pd.DataFrame:
+def get_yahoo_bulk(tickers: list = ["^GSPC"], period: str = "max") -> pd.DataFrame:
     """Download the historical adjusted closing price of multiple securities
     with ticker in the `tickers` list.
 
@@ -161,8 +165,8 @@ def get_yahoo_bulk(tickers: list, period: str = "max") -> pd.DataFrame:
 
 
 def get_msci(
-        codes: list,
-        end_date: str = last_business_day().strftime("%Y%m%d"),
+        codes: list = [990100],
+        end_date: str = None,
         fx: str = "USD",
         variant: str = "STRD",
         freq: str = "END_OF_MONTH",
@@ -172,7 +176,7 @@ def get_msci(
     Parameters
     ----------
     codes : list
-        List of MSCI index code.
+        List of MSCI index code, by default [990100], i.e. MSCI World
         See https://www.msci.com/our-solutions/indexes/index-resources/index-tools
     end_date : str, optional
         As of date, by default get_last_business_day().strftime("%Y%m%d")
@@ -190,6 +194,8 @@ def get_msci(
     pd.DataFrame
         Time series of the index values. Index is DatetimeIndex (freq=None).
     """
+    if end_date is None:
+        end_date = last_business_day().strftime("%Y%m%d")
     url = f'https://app2-nv.msci.com/products/service/index/indexmaster/downloadLevelData?output=INDEX_LEVELS&currency_symbol={fx}&index_variant={variant}&start_date=19691231&end_date={end_date}&data_frequency={freq}&baseValue=false&index_codes={",".join(map(str, codes))}'
     df = pd.read_excel(url, thousands=',', parse_dates=[
                        0], skiprows=6, skipfooter=19).set_index('Date')
@@ -209,13 +215,13 @@ def get_eurekahedge() -> pd.DataFrame:
     return pd.read_csv("https://www.eurekahedge.com/df/Eurekahedge_indices.zip", parse_dates=['Date'], index_col=[0, 1, 2], na_values=' ').squeeze().unstack().T.to_period('M') / 100.0
 
 
-def get_statcan_bulk(ids: list, n: int = 25) -> pd.DataFrame:
+def get_statcan_bulk(ids: list = [2062815], n: int = 25) -> pd.DataFrame:
     """Download the historical data from Statisticas Canada
 
     Parameters
     ----------
     ids : list
-        List of vectors (10 digits without leading "V")
+        List of vectors, by default [2062815]. (Vector number is a 10-digit number without leading "V")
     n : int, optional
         Number of months, by default 24
 
@@ -234,13 +240,13 @@ def get_statcan_bulk(ids: list, n: int = 25) -> pd.DataFrame:
     return df.sort_index()
 
 
-def get_fred_bulk(ids: list = [], start: datetime.date = end_of_month(n=-25), end: datetime.date = today()) -> pd.DataFrame:
+def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = end_of_month(n=-25), end_date: datetime.date = None) -> pd.DataFrame:
     """Download the historical Federal Reserve Economic Data (FRED) from Frederal Reserver Bank of St. Louis
 
     Parameters
     ----------
     ids : list, optional
-        List of series Ids, by default []
+        List of series Ids, by default ["SOFR"], i.e. Secured Overnight Financing Rate
     start : datetime.date, optional
         Start date, by default 2 years before today
     end : datetime.date, optional
@@ -251,11 +257,13 @@ def get_fred_bulk(ids: list = [], start: datetime.date = end_of_month(n=-25), en
     pd.DataFrame
         Index is DatetimeIndex (freq='ME')
     """
-    df = pdr.DataReader(['SOFR', 'T10YIE'], 'fred', start, end)
+    if end_date is None:
+        end_date = datetime.datetime.today()
+    df = pdr.DataReader(['SOFR', 'T10YIE'], 'fred', start_date, end_date)
     return df.groupby(pd.Grouper(freq="ME")).last()
 
 
-def get_us_yield_curve(year: int = today().year, n: int = 2) -> pd.DataFrame:
+def get_us_yield_curve(year: int = 0, n: int = 2) -> pd.DataFrame:
     """Download the historical Treasury Par Yield Curve Rates
 
     Parameters
@@ -270,6 +278,8 @@ def get_us_yield_curve(year: int = today().year, n: int = 2) -> pd.DataFrame:
     pd.DataFrame
         Index is DatetimeIndex (freq=None)
     """
+    if year == 0:
+        year = datetime.datetime.today().year
     data = [pd.read_csv(
         f"https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{y}/all?type=daily_treasury_yield_curve&_format=csv", index_col=0) for y in range(year, year - n, -1)]
     df = pd.concat(data, axis=0)
@@ -277,13 +287,13 @@ def get_us_yield_curve(year: int = today().year, n: int = 2) -> pd.DataFrame:
     return df.sort_index()
 
 
-def get_boc_bulk(ids: list, start: datetime.date = end_of_month(n=-25), end: datetime.date = end_of_month()) -> pd.DataFrame:
+def get_boc_bulk(ids: list = ["V80691342"], start_date: datetime.date = None, end_date: datetime.date = None) -> pd.DataFrame:
     """Download the historical data from Bank of Canada
 
     Parameters
     ----------
     ids : list
-        List of series names
+        List of series names, by default ["V80691342"], i.e. 1 month Treasury bill
     start : datetime.date, optional
         Start date, by default end_of_month(n=-25)
     end : datetime.date, optional
@@ -294,6 +304,10 @@ def get_boc_bulk(ids: list, start: datetime.date = end_of_month(n=-25), end: dat
     pd.DataFrame
         _description_
     """
-    url = f'https://www.bankofcanada.ca/valet/observations/{urllib.parse.quote(",".join(ids))}/csv?start_date={start.strftime("%Y-%m-%d")}&end_date={end.strftime("%Y-%m-%d")}'
+    if start_date is None:
+        start_date = end_of_month(n=-25)
+    if end_date is None:
+        end_date = end_of_month()
+    url = f'https://www.bankofcanada.ca/valet/observations/{urllib.parse.quote(",".join(ids))}/csv?start_date={start_date.strftime("%Y-%m-%d")}&end_date={end_date.strftime("%Y-%m-%d")}'
     csv = requests.get(url, verify=False)
     return pd.read_csv(io.StringIO(csv.text.split('"OBSERVATIONS"\r\n')[1]), parse_dates=["date"]).set_index("date").loc[:, ids]
