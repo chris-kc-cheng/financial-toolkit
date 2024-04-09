@@ -160,8 +160,8 @@ def get_yahoo_bulk(tickers: list = ["^GSPC"], period: str = "max") -> pd.DataFra
     pd.DataFrame
         Time series of the prices of the securities
     """
-    # Columns are already the tickers
-    return yf.download(" ".join(tickers), period=period)["Adj Close"].asfreq("B")
+    # Columns are already the tickers, note some securities like crypto trades in non-business days
+    return yf.download(" ".join(tickers), period=period)["Adj Close"]
 
 
 def get_msci(
@@ -240,7 +240,7 @@ def get_statcan_bulk(ids: list = [2062815], n: int = 25) -> pd.DataFrame:
     return df.sort_index()
 
 
-def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = end_of_month(n=-25), end_date: datetime.date = None) -> pd.DataFrame:
+def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = None, end_date: datetime.date = None) -> pd.DataFrame:
     """Download the historical Federal Reserve Economic Data (FRED) from Frederal Reserver Bank of St. Louis
 
     Parameters
@@ -257,9 +257,11 @@ def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = end_of_month
     pd.DataFrame
         Index is DatetimeIndex (freq='ME')
     """
+    if start_date is None:
+        start_date = end_of_month(n=-25)
     if end_date is None:
         end_date = datetime.datetime.today()
-    df = pdr.DataReader(['SOFR', 'T10YIE'], 'fred', start_date, end_date)
+    df = pdr.DataReader(ids, 'fred', start_date, end_date)
     return df.groupby(pd.Grouper(freq="ME")).last()
 
 
