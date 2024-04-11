@@ -127,21 +127,23 @@ def get_famafrench_factors(dataset: str, add_momentum: bool = False) -> pd.DataF
 
 
 # Yahoo
-def get_yahoo(ticker: str = "^GSPC") -> pd.Series:
+def get_yahoo(ticker: str = "^GSPC", period: str = "max") -> pd.Series:
     """Download the historical adjusted closing price of a security with
     ticker `ticker`.
 
     Args:
         ticker (str): Yahoo! ticker of the security, by default "^GSPC", i.e. S&P 500
+    period : str, optional
+        Length of track record to download, by default 'max'
 
     Returns:
         pd.Series: Time series of the prices of the security
     """
     t = yf.Ticker(ticker)
     # Some securities e.g. crypto trades on weekends
-    s = t.history(period="max")["Close"]
+    s = t.history(period=period)["Close"]
     s.name = ticker
-    return s
+    return s.asfreq("D")
 
 
 def get_yahoo_bulk(tickers: list = ["^GSPC"], period: str = "max") -> pd.DataFrame:
@@ -161,7 +163,7 @@ def get_yahoo_bulk(tickers: list = ["^GSPC"], period: str = "max") -> pd.DataFra
         Time series of the prices of the securities
     """
     # Columns are already the tickers, note some securities like crypto trades in non-business days
-    return yf.download(" ".join(tickers), period=period)["Adj Close"]
+    return yf.download(" ".join(tickers), period=period)["Adj Close"].asfreq('D')
 
 
 def get_msci(
@@ -282,9 +284,10 @@ def get_us_yield_curve(year: int = 0, n: int = 2) -> pd.DataFrame:
     """
     if year == 0:
         year = datetime.datetime.today().year
-    data = [pd.read_csv(
-        f"https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{y}/all?type=daily_treasury_yield_curve&_format=csv", index_col=0) for y in range(year, year - n, -1)]
-    df = pd.concat(data, axis=0)
+    data = [requests.get(
+        f"https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{y}/all?type=daily_treasury_yield_curve&_format=csv", verify=False).text for y in range(year, year - n, -1)]
+    df = pd.concat([pd.read_csv(io.StringIO(d), index_col=0)
+                   for d in data], axis=0)
     df.index = pd.to_datetime(df.index)
     return df.sort_index()
 

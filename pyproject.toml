@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fintoolkit"
-version = "0.0.6"
+version = "0.0.9"
 authors = [
   { name="Chris Cheng", email="kc1116@gmail.com" },
 ]
