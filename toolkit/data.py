@@ -331,7 +331,7 @@ def get_spglobal_bulk(codes: list = [5457755]) -> pd.DataFrame:
     pd.DataFrame
         Index is DatetimeIndex (freq='B')
     """
-    url = f"https://www.spglobal.com/spdji/en/util/redesign/get-index-comparison-data.dot?compareArray={'&compareArray='.join([str(i) for i in codes])}&periodFlag=oneYearFlag&language_id=1&_=1714519313747"
+    url = f"https://www.spglobal.com/spdji/en/util/redesign/get-index-comparison-data.dot?compareArray={'&compareArray='.join([str(i) for i in codes])}&periodFlag=tenYearFlag&language_id=1"
     headers = {
         "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36"}
     json = requests.get(url, headers=headers).json()
@@ -343,5 +343,6 @@ def get_spglobal_bulk(codes: list = [5457755]) -> pd.DataFrame:
         lambda e: datetime.datetime.fromtimestamp(e / 1000))
     df = df.pivot(index="date", columns="indexId",
                   values="indexValue").asfreq("B")
-    df.columns = pd.MultiIndex.from_tuples([(i, names[i]) for i in names])
+    df.columns = pd.MultiIndex.from_tuples(
+        [(i, names[str(i)]) for i in list(df.columns)])
     return df
