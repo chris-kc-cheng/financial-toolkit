@@ -316,3 +316,32 @@ def get_boc_bulk(ids: list = ["V80691342"], start_date: datetime.date = None, en
     url = f'https://www.bankofcanada.ca/valet/observations/{urllib.parse.quote(",".join(ids))}/csv?start_date={start_date.strftime("%Y-%m-%d")}&end_date={end_date.strftime("%Y-%m-%d")}'
     csv = requests.get(url, verify=False)
     return pd.read_csv(io.StringIO(csv.text.split('"OBSERVATIONS"\r\n')[1]), parse_dates=["date"]).set_index("date").loc[:, ids]
+
+
+def get_spglobal_bulk(codes: list = [5457755]) -> pd.DataFrame:
+    """Download the historical index values from S&P Global
+
+    Parameters
+    ----------
+    codes : list, optional
+        List of index code, by default [5457755]
+
+    Returns
+    -------
+    pd.DataFrame
+        Index is DatetimeIndex (freq='B')
+    """
+    url = f"https://www.spglobal.com/spdji/en/util/redesign/get-index-comparison-data.dot?compareArray={'&compareArray='.join([str(i) for i in codes])}&periodFlag=oneYearFlag&language_id=1&_=1714519313747"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36"}
+    json = requests.get(url, headers=headers).json()
+    names = {str(i["indexId"]): i["indexName"]
+             for i in json["performanceComparisonHolder"]["indexPerformanceForComparison"]}
+    values = json["levelComparisonHolder"]["indexLevelForComparison"]
+    df = pd.DataFrame([j for i in list(names.keys()) for j in values[i]])
+    df["date"] = df["effectiveDate"].apply(
+        lambda e: datetime.datetime.fromtimestamp(e / 1000))
+    df = df.pivot(index="date", columns="indexId",
+                  values="indexValue").asfreq("B")
+    df.columns = pd.MultiIndex.from_tuples([(i, names[i]) for i in names])
+    return df
