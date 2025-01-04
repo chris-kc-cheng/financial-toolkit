@@ -333,7 +333,10 @@ def get_spglobal_bulk(codes: list = [5457755]) -> pd.DataFrame:
     """
     url = f"https://www.spglobal.com/spdji/en/util/redesign/get-index-comparison-data.dot?compareArray={'&compareArray='.join([str(i) for i in codes])}&periodFlag=tenYearFlag&language_id=1"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36"}
+        "User-Agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36",
+        "referer": "https://www.spglobal.com/spdji/en/indices/equity/sp-tsx-composite-index/",
+        "x-requested-with": "XMLHttpRequest"
+    }
     json = requests.get(url, headers=headers).json()
     names = {str(i["indexId"]): i["indexName"]
              for i in json["performanceComparisonHolder"]["indexPerformanceForComparison"]}
