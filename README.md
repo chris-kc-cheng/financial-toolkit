@@ -1,6 +1,6 @@
 # Financial Toolkit 💹
 
-This is an open-source Python 🐍 library that implements the most commonly used functions that are frequently used by an investment professional.
+This is an open-source Python 🐍 library that implements the most commonly used functions by an investment professional.
 
 This is still in the early stage of development but I will keep adding new features over time. Here are some of the features implemented so far:
 
