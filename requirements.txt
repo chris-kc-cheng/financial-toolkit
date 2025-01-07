@@ -4,7 +4,7 @@ pandas
 pandas-datareader
 statsmodels
 scikit-learn
-yfinance
+yfinance==0.2.32
 xlrd
 
 # Replaced distutils
