@@ -163,7 +163,7 @@ def get_yahoo_bulk(tickers: list = ["^GSPC"], period: str = "max") -> pd.DataFra
         Time series of the prices of the securities
     """
     # Columns are already the tickers, note some securities like crypto trades in non-business days
-    return yf.download(" ".join(tickers), period=period)["Adj Close"].asfreq('D')
+    return yf.download(" ".join(tickers), auto_adjust=False, period=period)["Adj Close"].asfreq('D')
 
 
 def get_msci(
