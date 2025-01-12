@@ -196,9 +196,9 @@ class TestFunctional(unittest.TestCase):
         # not / or create new columns
         nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
 
-        nky_p.iloc[3] = np.NaN
-        jpy_p.iloc[2] = np.NaN
-        cad_p.iloc[4] = np.NaN
+        nky_p.iloc[3] = np.nan
+        jpy_p.iloc[2] = np.nan
+        cad_p.iloc[4] = np.nan
 
         nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
 
