@@ -206,15 +206,15 @@ def get_msci(
     return df
 
 
-def get_eurekahedge() -> pd.DataFrame:
-    """Download the historical index value of all hedge fund indexes.
+def get_withintelligence(ids: list = []) -> pd.DataFrame:
+    """Download the historical index value of selected hedge fund indexes.
 
     Returns
     -------
     pd.DataFrame
         Time series of the monthly returns. Index is PeriodIndex.
     """
-    return pd.read_csv("https://www.eurekahedge.com/df/Eurekahedge_indices.zip", parse_dates=['Date'], index_col=[0, 1, 2], na_values=' ').squeeze().unstack().T.to_period('M') / 100.0
+    return None
 
 
 def get_statcan_bulk(ids: list = [2062815], n: int = 25) -> pd.DataFrame:
