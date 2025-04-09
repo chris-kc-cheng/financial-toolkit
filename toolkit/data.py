@@ -6,7 +6,8 @@
     - Bank of Canada
     - Statistics Canada
     - MSCI
-    - Eurekahedge
+    - With Intelligence
+    - S&P
 """
 from functools import wraps
 import io
@@ -226,11 +227,18 @@ def get_withintelligence(code: int) -> pd.Series:
     df = pd.DataFrame(data[dom]['stats'])
     s = df.set_index('date')['performance']
     s.name = data[dom]['name']
-    s.index = pd.DatetimeIndex(s.index)
-    return s.to_period('M')
+    s.index = pd.PeriodIndex(s.index, freq='M')
+    return s.groupby(pd.Grouper(freq='M')).last()
 
 
-def get_bulk_withintelligence(codes: list = [11469]):
+def get_bulk_withintelligence(codes: list = [11469]) -> pd.DataFrame:
+    """Download the historical returns of selected hedge fund indexes.
+
+    Returns
+    -------
+    pd.DataFrame
+        Time series of the monthly returns.
+    """
     return pd.concat([get_withintelligence(code) for code in codes], axis=1)
 
 
