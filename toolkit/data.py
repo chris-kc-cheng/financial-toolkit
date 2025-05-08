@@ -20,6 +20,7 @@ import pandas as pd
 import pandas_datareader as pdr
 import yfinance as yf
 from bs4 import BeautifulSoup
+from curl_cffi import requests as cffi
 
 
 def _default_date(func):
@@ -142,7 +143,8 @@ def get_yahoo(ticker: str = "^GSPC", period: str = "max") -> pd.Series:
     Returns:
         pd.Series: Time series of the prices of the security
     """
-    t = yf.Ticker(ticker)
+    session = cffi.Session(impersonate="chrome")
+    t = yf.Ticker(ticker, session=session)
     # Some securities e.g. crypto trades on weekends
     s = t.history(period=period)["Close"]
     s.name = ticker
@@ -166,6 +168,9 @@ def get_yahoo_bulk(tickers: list = ["^GSPC"], period: str = "max") -> pd.DataFra
         Time series of the prices of the securities
     """
     # Columns are already the tickers, note some securities like crypto trades in non-business days
+    session = cffi.Session(impersonate="chrome")
+    # Fix YFRateLimitError
+    yf.Ticker("QQQ", session=session)
     return yf.download(" ".join(tickers), auto_adjust=False, period=period)["Adj Close"].asfreq('D')
 
 
