@@ -6,6 +6,7 @@ statsmodels
 scikit-learn
 yfinance
 xlrd
+curl_cffi
 
 # Replaced distutils
 setuptools
