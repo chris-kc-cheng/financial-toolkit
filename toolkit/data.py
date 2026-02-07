@@ -255,7 +255,7 @@ def get_msci(
     """
     if end_date is None:
         end_date = last_business_day().strftime("%Y%m%d")
-    url = f'https://app2-nv.msci.com/products/service/index/indexmaster/downloadLevelData?output=INDEX_LEVELS&currency_symbol={fx}&index_variant={variant}&start_date=19691231&end_date={end_date}&data_frequency={freq}&baseValue=false&index_codes={",".join(map(str, codes))}'
+    url = f'https://app2.msci.com/products/service/index/indexmaster/downloadLevelData?output=INDEX_LEVELS&currency_symbol={fx}&index_variant={variant}&start_date=19970101&end_date={end_date}&data_frequency={freq}&baseValue=false&index_codes={",".join(map(str, codes))}'
     df = pd.read_excel(url, thousands=',', parse_dates=[
                        0], skiprows=6, skipfooter=19).set_index('Date')
     if ror:
