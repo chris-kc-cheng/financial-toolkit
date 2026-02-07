@@ -10,6 +10,7 @@ curl_cffi==0.13.0
 cycler==0.12.1
 debugpy==1.8.20
 decorator==5.2.1
+et_xmlfile==2.0.0
 executing==2.2.1
 fonttools==4.61.1
 frozendict==2.4.7
@@ -28,6 +29,7 @@ matplotlib-inline==0.2.1
 multitasking==0.0.12
 nest-asyncio==1.6.0
 numpy==2.4.2
+openpyxl==3.1.5
 packaging==26.0
 pandas==3.0.0
 parso==0.8.5

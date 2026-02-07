@@ -350,27 +350,23 @@ def get_fred_data(ids: list, start=None, end=None) -> pd.DataFrame:
     return df
 
 
-def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = None, end_date: datetime.date = None) -> pd.DataFrame:
+def get_fred_bulk(ids: list = ["SOFR"], start_date: str = None, end_date: str = None) -> pd.DataFrame:
     """Download the historical Federal Reserve Economic Data (FRED) from Frederal Reserver Bank of St. Louis
 
     Parameters
     ----------
     ids : list, optional
         List of series Ids, by default ["SOFR"], i.e. Secured Overnight Financing Rate
-    start : datetime.date, optional
-        Start date, by default 2 years before today
-    end : datetime.date, optional
-        End date, by default today
+    start : str, optional
+        Start date in YYYY-MM-DD format, by default earliest available
+    end : str, optional
+        End date in YYYY-MM-DD format, by default latest available
 
     Returns
     -------
     pd.DataFrame
         Index is DatetimeIndex (freq='ME')
     """
-    if start_date is None:
-        start_date = end_of_month(n=-25)
-    if end_date is None:
-        end_date = datetime.datetime.today()
     df = get_fred_data(ids, start_date, end_date)
     return df.groupby(pd.Grouper(freq="ME")).last()
 
