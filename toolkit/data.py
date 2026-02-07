@@ -15,9 +15,9 @@ import re
 import datetime
 import json
 import urllib
+import zipfile
 import requests
 import pandas as pd
-import pandas_datareader as pdr
 import yfinance as yf
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi
@@ -101,6 +101,22 @@ def end_of_year(date: datetime.date = None, n: int = 0) -> datetime.date:
     return end_of_month(date, -date.month + 12 * n + 12)
 
 
+def get_all_famafrench_datasets() -> list:
+    """Get the list of datasets
+
+    Returns:
+        list: List of dataset names in str
+    """
+    req = requests.get(
+        "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html")
+    soup = BeautifulSoup(req.text, "html.parser")
+    links = soup.select("a[href$='_CSV.zip']")
+    return sorted(set(
+        link["href"].split("/")[-1].replace("_CSV.zip", "")
+        for link in links
+    ))
+
+
 def get_famafrench_datasets() -> list:
     """Get the list of datasets related to factor analysis
 
@@ -108,22 +124,55 @@ def get_famafrench_datasets() -> list:
         list: List of dataset names in str
     """
     pattern = re.compile(r"^\w+_Factors\w*$")
-    full = pdr.famafrench.get_available_datasets()
+    full = get_all_famafrench_datasets()
     return sorted([x for x in full if pattern.match(x)])
+
+
+def get_data_famafrench(dataset: str) -> pd.DataFrame:
+    url = f"https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/{dataset}_CSV.zip"
+    req = requests.get(url)
+    with zipfile.ZipFile(io.BytesIO(req.content)) as z:
+        f = [n for n in z.namelist() if n.lower().endswith(".csv")][0]
+        raw_text = z.read(f).decode("latin1")
+
+    # CSV may contain multiple tables in the CSV file, descriptions and disclaimers
+    blocks = re.split(r"\n\s*\n", raw_text)
+
+    data = None
+    count = 0
+
+    for block in blocks:
+        block = block.strip()
+        try:
+            df = pd.read_csv(io.StringIO(block), index_col=0)
+            if len(df) > count:
+                count = len(df)
+                data = df
+        except Exception as e:
+            pass
+
+    idx = data.index.astype(str)
+    if idx.str.len()[0] == 6:
+        dt = pd.to_datetime(idx, format="%Y%m")
+        df.index = dt.to_period("M")
+    elif idx.str.len()[0] == 8:
+        dt = pd.to_datetime(idx, format="%Y%m%d")
+        df.index = dt.to_period("D")
+
+    return data
 
 
 def get_famafrench_factors(dataset: str, add_momentum: bool = False) -> pd.DataFrame:
     freq = "B" if "aily" in dataset else "M"
-    data = pdr.get_data_famafrench(
-        dataset, start="1990-01-01")[0].asfreq(freq) / 100
+    data = get_data_famafrench(
+        dataset).asfreq(freq) / 100
     factors = data.iloc[:, :-1]
     rfr = data.iloc[:, -1]
     if add_momentum:
         # Momentum has less data
         factors = factors.join(
-            pdr.get_data_famafrench(
-                re.sub(r"[35]_Factors", "Mom_Factor", dataset), start="1990-01-01"
-            )[0].asfreq(freq)
+            get_data_famafrench(
+                re.sub(r"[35]_Factors", "Mom_Factor", dataset)).asfreq(freq)
             / 100,
             how="inner",
         )
@@ -272,6 +321,35 @@ def get_statcan_bulk(ids: list = [2062815], n: int = 25) -> pd.DataFrame:
     return df.sort_index()
 
 
+def get_fred_data(ids: list, start=None, end=None) -> pd.DataFrame:
+    # Start and end should be strings in 'YYYY-MM-DD' format
+
+    ss = []
+    url = "https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "api_key": "52d595c6d9002e9f2031c8c3a7193564",
+        "file_type": "json",
+    }
+    if start:
+        params["observation_start"] = start
+    if end:
+        params["observation_end"] = end
+
+    for id in ids:
+        params["series_id"] = id
+        req = requests.get(url, params=params)
+        data = req.json()["observations"]
+
+        df = pd.DataFrame(data)
+        s = df.set_index("date")["value"]
+        s.name = id
+        ss.append(s)
+
+    df = pd.concat(ss, axis=1)
+    df.index = pd.to_datetime(df.index)
+    return df
+
+
 def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = None, end_date: datetime.date = None) -> pd.DataFrame:
     """Download the historical Federal Reserve Economic Data (FRED) from Frederal Reserver Bank of St. Louis
 
@@ -293,7 +371,7 @@ def get_fred_bulk(ids: list = ["SOFR"], start_date: datetime.date = None, end_da
         start_date = end_of_month(n=-25)
     if end_date is None:
         end_date = datetime.datetime.today()
-    df = pdr.DataReader(ids, 'fred', start_date, end_date)
+    df = get_fred_data(ids, start_date, end_date)
     return df.groupby(pd.Grouper(freq="ME")).last()
 
 

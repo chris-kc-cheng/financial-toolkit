@@ -3,6 +3,7 @@
 Vectorized. Interest rate can be a Series of floating rates.
 """
 from typing import Tuple
+import math
 import numpy as np
 import pandas as pd
 from scipy import optimize
@@ -296,30 +297,33 @@ def cir(years: float, a: float, b: float, sigma: float, init: float, scenarios: 
     """
 
     init = np.log1p(init)
-    dt = 1/steps_per_year
+    dt = 1 / steps_per_year
     n = int(years * steps_per_year) + 1
 
     shock = np.random.normal(0, scale=np.sqrt(dt), size=(n, scenarios))
     rates = np.empty_like(shock)
     rates[0] = init
 
-    h = math.sqrt(a**2 + 2*sigma**2)
+    h = math.sqrt(a**2 + 2 * sigma**2)
     prices = np.empty_like(shock)
 
     def price(ttm, r):
-        _A = ((2*h*math.exp((h+a)*ttm/2)) /
-              (2*h+(h+a)*(math.exp(h*ttm)-1)))**(2*a*b/sigma**2)
-        _B = (2*(math.exp(h*ttm)-1))/(2*h + (h+a)*(math.exp(h*ttm)-1))
-        _P = _A*np.exp(-_B*r)
+        _A = (
+            (2 * h * math.exp((h + a) * ttm / 2))
+            / (2 * h + (h + a) * (math.exp(h * ttm) - 1))
+        ) ** (2 * a * b / sigma**2)
+        _B = (2 * (math.exp(h * ttm) - 1)) / \
+            (2 * h + (h + a) * (math.exp(h * ttm) - 1))
+        _P = _A * np.exp(-_B * r)
         return _P
 
     prices[0] = price(years, init)
 
     for step in range(1, n):
-        r_t = rates[step-1]
-        d_r_t = a*(b-r_t)*dt + sigma*np.sqrt(r_t)*shock[step]
+        r_t = rates[step - 1]
+        d_r_t = a * (b - r_t) * dt + sigma * np.sqrt(r_t) * shock[step]
         rates[step] = abs(r_t + d_r_t)
-        prices[step] = price(years-step*dt, rates[step])
+        prices[step] = price(years - step * dt, rates[step])
 
     rates = pd.DataFrame(data=np.expm1(rates), index=np.arange(n) * dt)
     prices = pd.DataFrame(data=prices, index=np.arange(n) * dt)
