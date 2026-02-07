@@ -19,7 +19,6 @@ pip install fintoolkit
 
 The API doc is hosted on [GitHub Pages](https://chris-kc-cheng.github.io/financial-toolkit/toolkit.html).
 
-## Related Repositories
 
 ### Jupyter Notebooks 📔
 
@@ -27,13 +26,14 @@ Jupyter is browser-based shell that allows user to interact with Python scripts.
 
 In this repository, I have developed some Jupyter notebooks showing the most common use cases in investment management that utilizes the Financial Toolkit.
 
-The source code is hosted on GitHub at: https://github.com/chris-kc-cheng/ftk-notebook
-
 No Python? No problem. With Binder, you may interact with the Jupyter notebooks in an executable environment even without Python installed in your computer.
 
-Binder: https://mybinder.org/v2/gh/chris-kc-cheng/ftk-notebook/HEAD
+Binder: https://mybinder.org/v2/gh/chris-kc-cheng/financial-toolkit/master
 
-## Streamlit Apps 👑
+
+## Related Repositories
+
+### Streamlit Apps 👑
 
 Streamlit is a framework that turns Python scripts into interactive web apps. 
 

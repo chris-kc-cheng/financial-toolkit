@@ -11,7 +11,7 @@ import pandas as pd
 import statsmodels.api as sm
 
 # Constant used for annualizing returns and volatilities
-PERIODICITY = {"D": 252, "B": 252, "W": 52, "M": 12, "Q": 4, "Y": 1}
+PERIODICITY = {"D": 252, "W": 52, "M": 12, "Q": 4, "Y": 1}
 
 
 def periodicity(timeseries: pd.Series | pd.DataFrame) -> int:

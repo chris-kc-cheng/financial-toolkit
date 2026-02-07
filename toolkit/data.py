@@ -223,7 +223,7 @@ def get_withintelligence(code: int) -> pd.Series:
         Time series of the monthly returns.
     """
     url = 'https://platform.withintelligence.com/hfm/performance/indices/' + \
-        str(code) + '}'
+        str(code)
     soup = BeautifulSoup(requests.get(url).content, 'html.parser')
     res = soup.find('script', attrs={'id': 'script-apollo-state'}).text
     data = json.loads(res[24:-1])
@@ -233,7 +233,7 @@ def get_withintelligence(code: int) -> pd.Series:
     s = df.set_index('date')['performance']
     s.name = data[dom]['name']
     s.index = pd.PeriodIndex(s.index, freq='M')
-    return s.groupby(pd.Grouper(freq='M')).last()
+    return s
 
 
 def get_bulk_withintelligence(codes: list = [11469]) -> pd.DataFrame:
