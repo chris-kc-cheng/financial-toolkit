@@ -179,7 +179,52 @@ def get_famafrench_factors(dataset: str, add_momentum: bool = False) -> pd.DataF
     return factors.join(rfr, how="inner")
 
 
+def get_funghsieh_factors() -> pd.DataFrame:
+    """Hedge Fund Risk Factors
+
+    https://people.duke.edu/%7Edah7/HFRFData.htm
+
+    Returns
+    -------
+    pd.DataFrame
+        S&P
+        SC-LC
+        10Y
+        Cred Spr
+        PTFSBD
+        PTFSFX
+        PTFSCOM
+        PTFSIR
+        PTFSSTK
+    """
+
+    eq = get_yahoo_bulk(['^SP500TR', '^RUTTR'])
+    eq = eq.resample('ME').last()
+    eq.index = eq.index.to_period('M')
+    eq = eq.pct_change()
+    eq = eq.rename(columns={'^SP500TR': 'S&P', '^RUTTR': 'SC-LC'})
+    eq['SC-LC'] = eq['SC-LC'] - eq['S&P']
+
+    bd = get_fred_bulk(['DGS10', 'DBAA'], start_date='1993-12-31')
+    bd = bd.apply(pd.to_numeric, errors="coerce")
+    bd['10Y'] = bd['DGS10'].diff() / 100
+    bd['Cred Spr'] = (bd['DBAA'] - bd['DGS10']).diff() / 100
+    bd = bd.drop(columns=['DGS10', 'DBAA'])
+    bd.index = bd.index.to_period('M')
+    bd.index.name = 'Date'
+
+    tf = pd.read_excel(
+        'https://people.duke.edu/~dah7/DataLibrary/TF-Fac.xls', skiprows=14, header=0)
+    tf = tf.set_index('yyyymm')
+    tf = tf.iloc[:, :5]
+    tf.index = pd.to_datetime(tf.index, format='%Y%m').to_period('M')
+    tf.index.name = 'Date'
+
+    return pd.concat([eq, bd, tf], axis=1).dropna()
+
 # Yahoo
+
+
 def get_yahoo(ticker: str = "^GSPC", period: str = "max") -> pd.Series:
     """Download the historical adjusted closing price of a security with
     ticker `ticker`.
@@ -285,7 +330,7 @@ def get_withintelligence(code: int) -> pd.Series:
     return s
 
 
-def get_bulk_withintelligence(codes: list = [11469]) -> pd.DataFrame:
+def get_withintelligence_bulk(codes: list = [11469]) -> pd.DataFrame:
     """Download the historical returns of selected hedge fund indexes.
 
     Returns
