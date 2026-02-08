@@ -30,3 +30,14 @@ class TestData(unittest.TestCase):
         self.assertAlmostEqual(p.loc['2025-12-31'].iloc[0], 1014.62, 2)
         self.assertAlmostEqual(
             np.expm1(np.log1p(r.loc['2025']).sum()).iloc[0], 0.2060, 4)
+
+    def test_us_yield_curve(self):
+        yield_us = ftk.get_us_yield_curve(
+            2025, n=1).groupby(pd.Grouper(freq='ME')).last()
+        self.assertAlmostEqual(yield_us.loc['2025-12-31', '1 Mo'], 3.74, 2)
+
+    def test_ca_yield_curve(self):
+        yield_ca = ftk.get_boc_bulk(['V80691342', 'V80691344', 'V80691345', 'V80691346', 'BD.CDN.2YR.DQ.YLD', 'BD.CDN.3YR.DQ.YLD', 'BD.CDN.5YR.DQ.YLD', 'BD.CDN.7YR.DQ.YLD', 'BD.CDN.10YR.DQ.YLD', 'BD.CDN.LONG.DQ.YLD'])\
+            .groupby(pd.Grouper(freq='ME')).last()
+        self.assertAlmostEqual(
+            yield_ca.loc['2025-12-31', 'V80691342'], 2.09, 2)
