@@ -296,13 +296,13 @@ def get_bulk_withintelligence(codes: list = [11469]) -> pd.DataFrame:
     return pd.concat([get_withintelligence(code) for code in codes], axis=1)
 
 
-def get_statcan_bulk(ids: list = [2062815], n: int = 25) -> pd.DataFrame:
+def get_statcan_bulk(ids: list = [41690973, 2062815], n: int = 25) -> pd.DataFrame:
     """Download the historical data from Statisticas Canada
 
     Parameters
     ----------
     ids : list
-        List of vectors, by default [2062815]. (Vector number is a 10-digit number without leading "V")
+        List of vectors, by default All-items Consumer Price Index (CPI) (41690973), and Unemployment Rate (2062815). Vector number is a 10-digit number without leading "V".
     n : int, optional
         Number of months, by default 24
 
@@ -313,12 +313,17 @@ def get_statcan_bulk(ids: list = [2062815], n: int = 25) -> pd.DataFrame:
     """
     url = "https://www150.statcan.gc.ca/t1/wds/rest/getDataFromVectorsAndLatestNPeriods"
     param = [{"vectorId": id, "latestN": n} for id in ids]
-    json = requests.post(url, json=param).json()
-    data = [pd.DataFrame(json[i]["object"]["vectorDataPoint"]).set_index(
-        "refPer")["value"] for i in range(len(json))]
-    df = pd.concat(data, axis=1, keys=ids)
-    df.index = pd.to_datetime(df.index)
-    return df.sort_index()
+    data = requests.post(url, json=param).json()
+
+    d = {s['object']['vectorId']: pd.DataFrame(
+        s['object']['vectorDataPoint']) for s in data}
+    s = pd.concat(d.values(), keys=d.keys())
+    s.index.names = ['vectorId', 'row']
+    s.reset_index(inplace=True)
+    s['refPer'] = pd.to_datetime(s['refPer']).dt.to_period('M')
+    s.set_index(['vectorId', 'refPer'], inplace=True)
+    s = s['value'].sort_index()
+    return s.unstack(level=0)
 
 
 def get_fred_data(ids: list, start=None, end=None) -> pd.DataFrame:
@@ -394,6 +399,41 @@ def get_us_yield_curve(year: int = 0, n: int = 2) -> pd.DataFrame:
                    for d in data], axis=0)
     df.index = pd.to_datetime(df.index)
     return df.sort_index()
+
+
+def get_bls_bulk(ids: list = ['CUUR0000SA0', 'LNS14000000'], start_year: int = None, end_year: int = None) -> pd.DataFrame:
+    """Download the historical data from US Bureau of Labor Statistics
+
+    Parameters
+    ----------
+    ids : list, optional
+        List of Series Id, by default Consumer Price Index for All Urban Consumers (CPI-U) (CUUR0000SA0) and Unemployment Rate (LNS14000000)
+    start_year : int, optional
+        Year, by default the current year
+    end_year : int, optional
+        Year, by default 10 years ago due to the API limit
+
+    Returns
+    -------
+    pd.DataFrame
+        _description_
+    """
+    url = "https://api.bls.gov/publicAPI/v2/timeseries/data/"
+    payload = {
+        "seriesid": ids,
+        "startyear": start_year if start_year else datetime.datetime.today().year - 9,
+        "endyear": end_year if end_year else datetime.datetime.today().year
+    }
+    data = requests.post(url, json=payload).json()
+    d = {s['seriesID']: pd.DataFrame(s['data'])
+         for s in data['Results']['series']}
+    df = pd.concat(d.values(), keys=d.keys())
+    df['month'] = df.apply(lambda x: f"{x['year']}-{x['period'][1:]}", axis=1)
+    df.index.names = ['seriesID', 'row']
+    df.reset_index(inplace=True)
+    df.set_index(['seriesID', 'month'], inplace=True)
+    df = df['value'].sort_index()
+    return pd.to_numeric(df, errors='coerce').unstack(level=0)
 
 
 def get_boc_bulk(ids: list = ["V80691342"], start_date: datetime.date = None, end_date: datetime.date = None) -> pd.DataFrame:

@@ -41,3 +41,19 @@ class TestData(unittest.TestCase):
             .groupby(pd.Grouper(freq='ME')).last()
         self.assertAlmostEqual(
             yield_ca.loc['2025-12-31', 'V80691342'], 2.09, 2)
+
+    def test_us_economic(self):
+        bls = ftk.get_bls_bulk()
+        # Consumer Price Index for All Urban Consumers (CPI-U)
+        self.assertAlmostEqual(
+            bls.loc['2025-12', 'CUUR0000SA0'], 324.054, 3)
+        # Unemployment Rate
+        self.assertAlmostEqual(
+            bls.loc['2025-12', 'LNS14000000'], 4.4, 1)
+
+    def test_ca_economic(self):
+        stat = ftk.get_statcan_bulk()
+        # All-items Consumer Price Index (CPI)
+        self.assertAlmostEqual(stat.loc['2025-12', 41690973], 165.0, 1)
+        # Unemployment Rate
+        self.assertAlmostEqual(stat.loc['2025-12', 2062815], 6.8, 1)
