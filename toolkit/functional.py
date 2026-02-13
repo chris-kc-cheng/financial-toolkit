@@ -1924,11 +1924,11 @@ def carino(p: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
         compound_return(p.sum(axis=1), annualize=False),
         compound_return(b.sum(axis=1), annualize=False)
     )
-    return a.mul(kt, axis=0) / ky
+    return pd.DataFrame(a.mul(kt, axis=0) / ky, index=a.index, columns=a.columns)
 
 
-def frongello(p: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
-    """Frongello linking algoritym
+def frongello(p: pd.DataFrame, b: pd.DataFrame, sel=1) -> pd.DataFrame:
+    """Frongello linking algorithm
 
     Parameters
     ----------
@@ -1936,6 +1936,10 @@ def frongello(p: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
         Portfolio return
     b : pd.DataFrame
         Benchmark return
+    sel : int
+        1.0 for Frongello linking algorithm, cross-product will be assigned to selection
+        0.0 for Reversed Frongello linking algorithm, cross-product will be assigned to allocation
+        0.5 for Modified Frongello linking algorithm, cross-product will be split equally
 
     Returns
     -------
@@ -1947,8 +1951,11 @@ def frongello(p: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
     for i in range(0, len(a)):
         original = a.iloc[i,]
         prevp = np.expm1(np.log1p(p.iloc[0:i, ].sum(axis=1)).sum()) + 1
+        prevb = np.expm1(np.log1p(b.iloc[0:i, ].sum(axis=1)).sum()) + 1
+        currp = p.iloc[i, ].sum()
         currb = b.iloc[i, ].sum()
-        x.iloc[i, ] = original * prevp + currb * x.iloc[0:i, ].sum(axis=0)
+        x.iloc[i, ] = (original * (sel * prevp + (1 - sel) * prevb) +
+                       (sel * currb + (1 - sel) * currp) * x.iloc[0:i, ].sum(axis=0))
     return x
 
 

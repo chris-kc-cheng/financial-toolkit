@@ -596,6 +596,7 @@ class TestFunctional(unittest.TestCase):
             ftk.compound_return(b.sum(axis=1), annualize=False)
 
         self.assertAlmostEqual(ftk.carino(p, b).sum().sum(), a, 6)
+        self.assertAlmostEqual(ftk.carino(p, b).iloc[3, 2], 0.058926, 6)
         self.assertAlmostEqual(ftk.frongello(p, b).sum().sum(), a, 6)
 
         p = pd.DataFrame({
@@ -611,3 +612,9 @@ class TestFunctional(unittest.TestCase):
 
         self.assertAlmostEqual(ftk.carino(p, b).sum().sum(), a, 6)
         self.assertAlmostEqual(ftk.frongello(p, b).sum().sum(), a, 6)
+        self.assertAlmostEqual(ftk.frongello(
+            p, b, sel=1).iloc[3, 1], 0.051710, 6)
+        self.assertAlmostEqual(ftk.frongello(
+            p, b, sel=0).iloc[3, 1], 0.057595, 6)
+        self.assertAlmostEqual(ftk.frongello(
+            p, b, sel=0.5).iloc[3, 1], 0.054772, 6)
