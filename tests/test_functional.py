@@ -196,9 +196,9 @@ class TestFunctional(unittest.TestCase):
         # not / or create new columns
         nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
 
-        nky_p.iloc[3] = np.NaN
-        jpy_p.iloc[2] = np.NaN
-        cad_p.iloc[4] = np.NaN
+        nky_p.iloc[3] = np.nan
+        jpy_p.iloc[2] = np.nan
+        cad_p.iloc[4] = np.nan
 
         nky_p.div(jpy_p, axis=0).mul(cad_p, axis=0)
 
@@ -220,7 +220,7 @@ class TestFunctional(unittest.TestCase):
         ftk.convert_fx(nky_r, jpy_r, cad_r)
         ftk.convert_fx(nky_nky_r, jpy_r, cad_r)
 
-        # Some diff in the middle due to NaN
+        # Some diff in the middle due to nan
         self.assertAlmostEqual(
             (
                 ftk.convert_fx(nky_p, jpy_p, cad_p)
@@ -503,3 +503,99 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(summary["Treynor Ratio"], 0.111, 3)
         self.assertAlmostEqual(summary["Up Capture"], 0.9379, 4)
         self.assertAlmostEqual(summary["Down Capture"], 0.9929, 4)
+
+    def test_dataset(self):
+        df = pd.read_csv('data/test.csv', index_col=0)
+        df.index = pd.PeriodIndex(df.index, freq='M')
+        f = df['Fund']
+        b = df['Benchmark']
+        r = df['Rfr']
+
+        self.assertAlmostEqual(ftk.compound_return(
+            f, annualize=False), 1.298846, 6)
+        self.assertAlmostEqual(ftk.compound_return(
+            f, annualize=True), 0.0875639, 6)
+        self.assertAlmostEqual(ftk.return_to_price(
+            f).multiply(100).iloc[-1], 229.8846, 4)
+        self.assertEqual(ftk.observation(f), 119)
+        self.assertEqual(f[f >= 0].count(), 67)
+        self.assertEqual(f[f < 0].count(), 52)
+        self.assertAlmostEqual(ftk.arithmetic_mean(f), 0.012004, 6)
+        self.assertAlmostEqual(ftk.avg_pos(f), 0.078778, 6)
+        self.assertAlmostEqual(ftk.avg_neg(f), -0.074033, 6)
+        self.assertAlmostEqual(ftk.best_period(f), 0.315142, 6)
+        self.assertAlmostEqual(ftk.worst_period(f), -0.287325, 6)
+        self.assertAlmostEqual(ftk.max_consecutive_gain(f), 1.079014, 6)
+        self.assertAlmostEqual(ftk.max_consecutive_loss(f), -0.667806, 6)
+        self.assertEqual(ftk.consecutive_positive_periods(f), 14)
+        self.assertEqual(ftk.consecutive_negative_periods(f), 8)
+        self.assertAlmostEqual(ftk.active_return(f, b, False), -1.127278, 6)
+        self.assertAlmostEqual(ftk.active_return(f, b, True), -0.044653, 6)
+        self.assertAlmostEqual(ftk.excess_return_geometric(f, b), -0.039439, 6)
+        self.assertEqual((f - b > 0).sum(), 58)
+        self.assertAlmostEqual((f - b > 0).mean(), 0.487395, 6)
+        self.assertAlmostEqual((f > 0).mean(), 0.563025, 6)
+        self.assertAlmostEqual(ftk.volatility(f, annualize=True), 0.348569, 6)
+        self.assertAlmostEqual(ftk.variance(f, annualize=True), 0.121500, 6)
+        self.assertAlmostEqual(ftk.skew(f), 0.154032, 6)
+        self.assertAlmostEqual(ftk.kurt(f), 0.578315, 6)
+
+        # self.assertAlmostEqual(ftk.jarque_bera(f), 2.128868, 6)
+
+        self.assertAlmostEqual(ftk.worst_drawdown(f), -0.770215, 6)
+        self.assertAlmostEqual(ftk.avg_drawdown(f), -0.160191, 6)
+        self.assertAlmostEqual(ftk.current_drawdown(f), -0.649712, 6)
+
+        # Semi Deviation (vs Mean, Annualized)	0.338618	0.338617581
+        # Gain Deviation (MAR)	0.272966	0.272965789
+        # Loss Deviation	0.221243	0.221243393
+
+        self.assertAlmostEqual(ftk.downside_risk(
+            f, r, ddof=0, annualize=True), 0.221243, 6)
+
+        # Bias Ratio	1.1053	1.105263158
+
+        self.assertAlmostEqual(ftk.avg_pos(f) / -ftk.avg_neg(f), 1.064098, 6)
+        self.assertAlmostEqual(ftk.beta(f, b), 1.652591, 6)
+        self.assertAlmostEqual(ftk.beta_t_stat(f, b), 11.407781, 6)
+        self.assertAlmostEqual(ftk.beta(f, b, r), 1.654357, 6)
+        self.assertAlmostEqual(
+            ftk.alpha(f, b, annualize=True, legacy=True), -0.078515, 6)
+        self.assertAlmostEqual(
+            ftk.alpha(f, b, r, annualize=True, legacy=True), -0.068351, 6)
+        self.assertAlmostEqual(ftk.correlation(df).iloc[0, 1], 0.725658, 6)
+        self.assertAlmostEqual(ftk.rsquared(f, b), 0.526579, 6)
+        self.assertAlmostEqual(ftk.ser(f, b), 0.069530, 6)
+        self.assertAlmostEqual(ftk.autocorrelation(f), 0.006740, 6)
+        self.assertAlmostEqual(ftk.sharpe(f, r), 0.202968, 6)
+        self.assertAlmostEqual(ftk.reward_to_risk(f), 0.251210, 6)
+        self.assertAlmostEqual(ftk.treynor(f, b, r), 0.042811, 6)
+        self.assertAlmostEqual(ftk.sortino(f, r), 0.319777, 6)
+        self.assertAlmostEqual(ftk.sterling_modified(f), 0.336536, 6)
+        self.assertAlmostEqual(ftk.calmar(f), 0.113688, 6)
+        self.assertAlmostEqual(ftk.up_market_return(f, b), 0.731121, 6)
+        self.assertAlmostEqual(ftk.down_market_return(f, b), -0.627586, 6)
+        self.assertAlmostEqual(ftk.up_capture(f, b), 1.501626, 6)
+        self.assertAlmostEqual(ftk.down_capture(f, b), 1.585006, 6)
+        self.assertAlmostEqual(ftk.tracking_error(
+            f, b, annualize=True), 0.259803, 6)
+        self.assertAlmostEqual(ftk.information_ratio(f, b), -0.171873, 6)
+        self.assertAlmostEqual(ftk.batting_average(f, b), 0.487395, 6)
+        self.assertAlmostEqual(ftk.up_batting_average(f, b), 0.566265, 6)
+        self.assertAlmostEqual(ftk.down_batting_average(f, b), 0.305556, 6)
+        self.assertAlmostEqual(ftk.rolling_batting_average(f, b), 0.607142, 5)
+        self.assertAlmostEqual(ftk.var_normal(f), -0.153507, 6)
+        self.assertAlmostEqual(ftk.var_modified(f), -0.147882, 6)
+
+        """
+        self.assertAlmostEqual(ftk, , 6)
+        
+        Historical VaR		-0.1329276
+        Historical CVaR		-0.189089167
+        
+        Gaussian CVaR		-0.195553057
+        
+        ???	-0.199255	-0.1992548
+        Kendall's Tau-b	-0.4714	-0.471404521
+        Kendall's Tau-c	-0.48	-0.48
+        """

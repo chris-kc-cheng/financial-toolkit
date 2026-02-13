@@ -304,7 +304,7 @@ def get_msci(
     df = pd.read_excel(url, thousands=',', parse_dates=[
                        0], skiprows=6, skipfooter=19).set_index('Date')
     if ror:
-        df = df.pct_change().to_period('M')
+        df = df.sort_index().ffill().pct_change().to_period('M')
     return df
 
 

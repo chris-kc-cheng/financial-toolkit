@@ -132,6 +132,22 @@ def _requirebenchmark(func):
     return wrapper
 
 
+def consecutive_positive_periods(timeseries):
+    return timeseries[timeseries > 0].groupby((timeseries <= 0).cumsum()).count().max()
+
+
+def consecutive_negative_periods(timeseries):
+    return timeseries[timeseries < 0].groupby((timeseries >= 0).cumsum()).count().max()
+
+
+def max_consecutive_gain(timeseries):
+    return ((1 + timeseries)[timeseries > 0].groupby((timeseries <= 0).cumsum())).prod().max() - 1
+
+
+def max_consecutive_loss(timeseries):
+    return ((1 + timeseries)[timeseries < 0].groupby((timeseries >= 0).cumsum())).prod().min() - 1
+
+
 def convert_fx(
     timeseries: pd.Series | pd.DataFrame, foreign: pd.Series, domestic: pd.Series
 ) -> pd.Series | pd.DataFrame:
@@ -365,6 +381,18 @@ def covariance(timeseries: pd.DataFrame, annualize=False) -> pd.DataFrame:
 
 
 @_requirereturn
+def autocorrelation(timeseries: pd.DataFrame) -> pd.Series:
+    if isinstance(timeseries, pd.DataFrame):
+        return timeseries.apply(autocorrelation)
+    return timeseries.autocorr(lag=1)
+
+
+# Standard error of regression
+def ser(timeseries: pd.Series, benchmark: pd.Series):
+    return sm.OLS(timeseries, sm.add_constant(benchmark)).fit().mse_resid ** 0.5
+
+
+@_requirereturn
 def correlation(timeseries: pd.DataFrame) -> pd.DataFrame:
     """Correlation matrix
 
@@ -383,7 +411,7 @@ def correlation(timeseries: pd.DataFrame) -> pd.DataFrame:
 
 @_requirereturn
 def sharpe(
-    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, annualize=True
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float | pd.Series = 0, annualize=True
 ) -> float | pd.Series:
     """Sharpe ratio measures the reward to variability
 
@@ -402,11 +430,17 @@ def sharpe(
         _description_
     """
     rate = rfr_annualized
+    if isinstance(rfr_annualized, pd.Series):
+        rate = compound_return(rfr_annualized, annualize)
     if not annualize:
         rate = (1 + rfr_annualized) ** (1 / periodicity(timeseries))
     return (compound_return(timeseries, annualize) - rate) / volatility(
         timeseries, annualize
     )
+
+
+def reward_to_risk(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    return compound_return(timeseries, annualize=True) / volatility(timeseries, annualize=True)
 
 
 @_requireprice
@@ -484,7 +518,11 @@ def avg_annual_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Seri
     return timeseries.groupby(timeseries.index.year).aggregate(worst_drawdown).mean()
 
 
-def avg_drawdown(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> float | pd.Series:
+def current_drawdown(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    return underwater(timeseries).iloc[-1]
+
+
+def avg_drawdown(timeseries: pd.Series | pd.DataFrame, d: int = None) -> float | pd.Series:
     """Average of the `d` largest drawdowns
 
     Parameters
@@ -492,7 +530,7 @@ def avg_drawdown(timeseries: pd.Series | pd.DataFrame, d: int = 3) -> float | pd
     timeseries : pd.Series | pd.DataFrame
         Series or DataFrame of prices
     d : int, optional
-        Number of observations, by default 3
+        Number of largest drawdowns, by default all
 
     Returns
     -------
@@ -549,7 +587,7 @@ def sterling(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
 
 
 def sterling_modified(
-    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = 3
+    timeseries: pd.Series | pd.DataFrame, rfr_annualized: float = 0, d: int = None, adjustment=0.1
 ) -> float | pd.Series:
     """Modified Sterling ratio, proposed by Carl Bacon, is a Sharpe-like ratio
     that uses average largest drawdown as the investor's risk instead of
@@ -570,7 +608,7 @@ def sterling_modified(
         _description_
     """
     return (compound_return(timeseries, True) - rfr_annualized) / np.absolute(
-        avg_drawdown(timeseries, d)
+        avg_drawdown(timeseries, d) - adjustment
     )
 
 
@@ -901,7 +939,10 @@ def sortino(
     float | pd.Series
         Sortino ratio
     """
-    ann_mar = (1 + mar) ** periodicity(timeseries) - 1
+    if isinstance(mar, pd.Series):
+        ann_mar = compound_return(mar, True)
+    else:
+        ann_mar = (1 + mar) ** periodicity(timeseries) - 1
     return (compound_return(timeseries, annualize=True) - ann_mar) / downside_risk(
         timeseries, mar, annualize=True, ddof=ddof
     )
@@ -1101,7 +1142,7 @@ def regress(
     if isinstance(timeseries, pd.DataFrame):
         return timeseries.aggregate(lambda x: regress(x, benchmark, rfr_periodic))
     result = sm.OLS(timeseries - rfr_periodic,
-                    sm.add_constant(benchmark)).fit()
+                    sm.add_constant(benchmark - rfr_periodic)).fit()
     a = result.params.iloc[0]
     b = result.params.iloc[1:].squeeze()  # Series
     r2 = result.rsquared
@@ -1150,6 +1191,12 @@ def beta(
     return regress(timeseries, benchmark, rfr_periodic).iloc[1]
 
 
+def beta_t_stat(
+        timeseries: pd.Series,
+        benchmark: pd.Series) -> float:
+    return sm.OLS(timeseries, sm.add_constant(benchmark)).fit().tvalues.iloc[1]
+
+
 @_requirereturn
 @_requirebenchmark
 def alpha(
@@ -1157,8 +1204,11 @@ def alpha(
     benchmark: pd.Series | pd.DataFrame,
     rfr_periodic: float | pd.Series = 0,
     annualize=False,
+    legacy=False
 ) -> float | pd.Series:
-    """Jensen's alpha(s)
+    """Alpha(s)
+
+    Note: This is NOT Jensen's alpha.
 
     Parameters
     ----------
@@ -1175,21 +1225,32 @@ def alpha(
         Note that alpha is annualized by multiplying it by number of periods in
         a year. See Bacon's book for other ways of annualizing regression
         alpha or Jensen's alpha.
+    legacy : bool, optional
+        The wrong way for annualizing alpha
 
     Returns
     -------
     float | pd.Series
-        Jensen's alpha(s), return type varies depending on the inputs
+        Alpha(s), return type varies depending on the inputs
 
         1. Simple or multiple regression on a single portfolio (i.e. timeseries is a Series, benchmark is either a Series or a DataFrame)
         Return type is a float.
         2. Simple or multiple regression on `k` portfolios (i.e. timeseries is a DataFrame, benchmark is either a Series or a DataFrame)
         Return type is a Series of shape (k,).
     """
-    a = regress(timeseries, benchmark, rfr_periodic).iloc[0]
+    slope = beta(timeseries, benchmark)
+    f = arithmetic_mean(timeseries)
+    b = arithmetic_mean(benchmark)
+    r = arithmetic_mean(rfr_periodic) if isinstance(
+        rfr_periodic, pd.Series) else rfr_periodic
+    a = (f - r) - slope * (b - r)
     if annualize:
-        # Sharpe's definition
-        a *= periodicity(timeseries)
+        if legacy:
+            # Wrong implementation, but used to Nasdaq eVestment
+            a = (1 + a)**periodicity(timeseries) - 1
+        else:
+            # Sharpe's definition, also used by MorningStar
+            a *= periodicity(timeseries)
     return a
 
 
@@ -1356,9 +1417,13 @@ def treynor(
     float | pd.Series
         Treynor ratio
     """
-    rfr_annualized = compound_return(rfr_periodic, annualize=True)
+    if isinstance(rfr_periodic, pd.Series):
+        rfr_annualized = compound_return(rfr_periodic, annualize=True)
+    else:
+        rfr_annualized = (1 + rfr_periodic) ** (1 / periodicity(timeseries))
+
     return (compound_return(timeseries, True) - rfr_annualized) / beta(
-        timeseries, benchmark, rfr_periodic
+        timeseries, benchmark
     )
 
 
@@ -1415,6 +1480,14 @@ def active_return(
         Excess return
     """
     return compound_return(timeseries, annualize) - compound_return(benchmark, annualize)
+
+
+def excess_return_geometric(
+    timeseries: pd.Series | pd.DataFrame,
+    benchmark: pd.Series | pd.DataFrame,
+    annualize=True,
+) -> float | pd.Series:
+    return compound_return((1 + timeseries) / (1 + benchmark) - 1, annualize=annualize)
 
 
 @_requirereturn
@@ -1559,8 +1632,8 @@ def summary(
 
 
 @_requirereturn
-def is_normal(timeseries: pd.Series, sig: float = 0.01) -> bool:
-    """Bera‐Jarque statistic.
+def jarque_bera(timeseries: pd.DataFrame) -> pd.Series | float:
+    """Jarque–Bera statistic.
 
     The test statistic is always nonnegative.
 
@@ -1568,19 +1641,42 @@ def is_normal(timeseries: pd.Series, sig: float = 0.01) -> bool:
 
     Parameters
     ----------
-    timeseries : pd.Series
+    timeseries : pd.DataFrame | pd.Series
+        Series or DataFrame of returns
+
+    Returns
+    -------
+    pd.Series | float
+        Jarque–Bera statistic
+    """
+    if isinstance(timeseries, pd.DataFrame):
+        return timeseries.aggregate(jarque_bera)
+    return scipy.stats.jarque_bera(timeseries).statistic
+
+
+@_requirereturn
+def is_normal(timeseries: pd.DataFrame | pd.Series, sig: float = 0.01) -> pd.Series | bool:
+    """Test if a time series is normally distributed.
+
+    The test statistic is always nonnegative.
+
+    p-value > sig means null hypothesis of normality cannot be rejected.
+
+    Parameters
+    ----------
+    timeseries : pd.DataFrame | pd.Series
         Series or DataFrame of returns
     sig : float, optional
         Significance level (alpha), by default 0.01
 
     Returns
     -------
-    bool
-        True if normal
+    pd.Series | bool
+        True if normal (fail to reject normality)
     """
     if isinstance(timeseries, pd.DataFrame):
-        return timeseries.aggregate(is_normal)
-    return scipy.stats.jarque_bera(timeseries)[1] > sig
+        return timeseries.aggregate(lambda s: is_normal(s, sig))
+    return scipy.stats.jarque_bera(timeseries).pvalue >= sig
 
 
 @_requirereturn
@@ -1699,6 +1795,40 @@ def cvar_normal(timeseries: pd.Series | pd.DataFrame, sig: float = 0.05) -> floa
     mu = arithmetic_mean(timeseries)
     sigma = volatility(timeseries, False)
     return mu - sigma * scipy.stats.norm.pdf(scipy.stats.norm.ppf(a)) / a
+
+
+def up_market_return(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+    return np.expm1(np.log1p(timeseries[benchmark > 0]).mean() * 12)
+
+
+def down_market_return(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+    return np.expm1(np.log1p(timeseries[benchmark < 0]).mean() * 12)
+
+
+def observation(timeseries: pd.Series | pd.DataFrame) -> pd.Series | int:
+    return timeseries.count()
+
+
+def batting_average(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+    return (timeseries > benchmark).sum() / observation(timeseries)
+
+
+def up_batting_average(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+    mask = benchmark >= 0
+    return batting_average(timeseries[mask], benchmark[mask])
+
+
+def down_batting_average(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+    mask = benchmark < 0
+    return batting_average(timeseries[mask], benchmark[mask])
+
+
+def rolling_batting_average(timeseries: pd.Series | pd.DataFrame, benchmark: pd.Series | pd.DataFrame):
+    ts = timeseries.rolling(36, min_periods=36).apply(
+        lambda x: compound_return(x, True))
+    bm = benchmark.rolling(36, min_periods=36).apply(
+        lambda x: compound_return(x, True))
+    return (ts > bm).sum() / ts.count()
 
 
 @_requirereturn
