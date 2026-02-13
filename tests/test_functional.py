@@ -539,23 +539,17 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.variance(f, annualize=True), 0.121500, 6)
         self.assertAlmostEqual(ftk.skew(f), 0.154032, 6)
         self.assertAlmostEqual(ftk.kurt(f), 0.578315, 6)
-
-        # self.assertAlmostEqual(ftk.jarque_bera(f), 2.128868, 6)
-
+        self.assertAlmostEqual(ftk.jarque_bera(f), 2.128868, 6)
         self.assertAlmostEqual(ftk.worst_drawdown(f), -0.770215, 6)
         self.assertAlmostEqual(ftk.avg_drawdown(f), -0.160191, 6)
         self.assertAlmostEqual(ftk.current_drawdown(f), -0.649712, 6)
-
-        # Semi Deviation (vs Mean, Annualized)	0.338618	0.338617581
-        # Gain Deviation (MAR)	0.272966	0.272965789
-        # Loss Deviation	0.221243	0.221243393
-
+        self.assertAlmostEqual(ftk.semi_deviation(f), 0.338618, 6)
+        self.assertAlmostEqual(
+            ftk.downside_risk(-f, 0, annualize=True), 0.272966, 6)
         self.assertAlmostEqual(ftk.downside_risk(
             f, r, ddof=0, annualize=True), 0.221243, 6)
-
-        # Bias Ratio	1.1053	1.105263158
-
-        self.assertAlmostEqual(ftk.avg_pos(f) / -ftk.avg_neg(f), 1.064098, 6)
+        self.assertAlmostEqual(ftk.bias_ratio(f), 1.105263, 6)
+        self.assertAlmostEqual(ftk.gain_loss(f), 1.064098, 6)
         self.assertAlmostEqual(ftk.beta(f, b), 1.652591, 6)
         self.assertAlmostEqual(ftk.beta_t_stat(f, b), 11.407781, 6)
         self.assertAlmostEqual(ftk.beta(f, b, r), 1.654357, 6)
@@ -587,15 +581,33 @@ class TestFunctional(unittest.TestCase):
         self.assertAlmostEqual(ftk.var_normal(f), -0.153507, 6)
         self.assertAlmostEqual(ftk.var_modified(f), -0.147882, 6)
 
-        """
-        self.assertAlmostEqual(ftk, , 6)
-        
-        Historical VaR		-0.1329276
-        Historical CVaR		-0.189089167
-        
-        Gaussian CVaR		-0.195553057
-        
-        ???	-0.199255	-0.1992548
-        Kendall's Tau-b	-0.4714	-0.471404521
-        Kendall's Tau-c	-0.48	-0.48
-        """
+    def test_smoothing(self):
+        p = pd.DataFrame({
+            'Sector 1': [-0.06, 0.04, 0.04, 0.04],
+            'Sector 2': [0.02, -0.12, -0.02, 0.06],
+            'Sector 3': [-0.12, 0.04, 0.21, 0.06]
+        }, index=['Q1', 'Q2', 'Q3', 'Q4'])
+        b = pd.DataFrame({
+            'Sector 1': [0, 0.03, -0.06, 0.08],
+            'Sector 2': [0.04, 0, -0.04, 0.06],
+            'Sector 3': [0.14, 0, -0.1, 0]
+        }, index=['Q1', 'Q2', 'Q3', 'Q4'])
+        a = ftk.compound_return(p.sum(axis=1), annualize=False) - \
+            ftk.compound_return(b.sum(axis=1), annualize=False)
+
+        self.assertAlmostEqual(ftk.carino(p, b).sum().sum(), a, 6)
+        self.assertAlmostEqual(ftk.frongello(p, b).sum().sum(), a, 6)
+
+        p = pd.DataFrame({
+            'Allocation': [0.10, 0.08, 0.05, 0.10],
+            'Selection':  [0.11, 0.06, 0.15, 0.07],
+        }, index=['Q1', 'Q2', 'Q3', 'Q4'])
+        b = pd.DataFrame({
+            'Allocation': [0.04, 0.06, 0.04, 0.05],
+            'Selection':  [0.07, 0.03, 0.08, 0.05],
+        }, index=['Q1', 'Q2', 'Q3', 'Q4'])
+        a = ftk.compound_return(p.sum(axis=1), annualize=False) - \
+            ftk.compound_return(b.sum(axis=1), annualize=False)
+
+        self.assertAlmostEqual(ftk.carino(p, b).sum().sum(), a, 6)
+        self.assertAlmostEqual(ftk.frongello(p, b).sum().sum(), a, 6)

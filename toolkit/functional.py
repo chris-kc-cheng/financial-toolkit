@@ -443,6 +443,15 @@ def reward_to_risk(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     return compound_return(timeseries, annualize=True) / volatility(timeseries, annualize=True)
 
 
+def bias_ratio(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    z = timeseries / timeseries.std()
+    return ((z >= 0) & (z <= 1)).sum() / (((z >= -1) & (z < 0)).sum() + 1)
+
+
+def gain_loss(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
+    return avg_pos(timeseries) / -avg_neg(timeseries)
+
+
 @_requireprice
 def max_upturn(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
     """Maximum upturn
@@ -825,6 +834,12 @@ def upside_potential(
         Upside potential
     """
     return (timeseries[timeseries > mar] - mar).sum() / len(timeseries)
+
+
+def semi_deviation(timeseries: pd.Series | pd.DataFrame, annualize: bool = False,
+                   ddof: int = 1):
+    x = (timeseries - timeseries.mean())
+    return np.sqrt((x[x < 0]**2).sum() / (x[x < 0].count() - ddof) * 12)
 
 
 @_requirereturn
@@ -1649,9 +1664,10 @@ def jarque_bera(timeseries: pd.DataFrame) -> pd.Series | float:
     pd.Series | float
         Jarque–Bera statistic
     """
-    if isinstance(timeseries, pd.DataFrame):
-        return timeseries.aggregate(jarque_bera)
-    return scipy.stats.jarque_bera(timeseries).statistic
+    n = timeseries.count()
+    s = timeseries.skew()
+    k = timeseries.kurt()
+    return (n / 6) * (s**2 + (k**2) / 4)
 
 
 @_requirereturn
@@ -1879,22 +1895,61 @@ def down_capture(
     return compound_return(timeseries[down], annualize=True) / compound_return(benchmark[down], annualize=True)
 
 
-def carino(r: float, b: float) -> float:
+def carino(p: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
     """Smoothing algorithm for multi-period attribution
 
     Parameters
     ----------
-    r : float
+    p : pd.DataFrame
         Portfolio return
-    b : float
+    b : pd.DataFrame
         Benchmark return
 
     Returns
     -------
     float
-        Carino factor
+        Adjusted attributes
     """
-    return np.where(r == b, 1 / (1 + r), (np.log1p(r) - np.log1p(b)) / (r - b))
+
+    def _k(r: float | pd.Series, b: float | pd.Series) -> float | pd.Series:
+        return np.where(r == b, 1 / (1 + r), (np.log1p(r) - np.log1p(b)) / (r - b))
+
+    a = p - b
+    p.sum(axis=1)
+    kt = _k(
+        p.sum(axis=1),
+        b.sum(axis=1)
+    )
+    ky = _k(
+        compound_return(p.sum(axis=1), annualize=False),
+        compound_return(b.sum(axis=1), annualize=False)
+    )
+    return a.mul(kt, axis=0) / ky
+
+
+def frongello(p: pd.DataFrame, b: pd.DataFrame) -> pd.DataFrame:
+    """Frongello linking algoritym
+
+    Parameters
+    ----------
+    p : pd.DataFrame
+        Portfolio return
+    b : pd.DataFrame
+        Benchmark return
+
+    Returns
+    -------
+    pd.DataFrame
+        Adjusted attributes
+    """
+    a = p - b
+    x = pd.DataFrame(np.zeros_like(a), index=a.index, columns=a.columns)
+    for i in range(0, len(a)):
+        original = a.iloc[i,]
+        prevp = np.expm1(np.log1p(p.iloc[0:i, ].sum(axis=1)).sum()) + 1
+        currb = b.iloc[i, ].sum()
+        x.iloc[i, ] = original * prevp + currb * x.iloc[0:i, ].sum(axis=0)
+    return x
 
 
 # TODO:
