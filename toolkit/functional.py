@@ -430,14 +430,12 @@ def sharpe(
     float | pd.Series
         _description_
     """
-    rate = rfr_annualized
-    if isinstance(rfr_annualized, pd.Series):
-        rate = compound_return(rfr_annualized, annualize)
-    if not annualize:
-        rate = (1 + rfr_annualized) ** (1 / periodicity(timeseries))
-    return (compound_return(timeseries, annualize) - rate) / volatility(
-        timeseries, annualize
-    )
+    rate = compound_return(rfr_annualized, annualize=annualize) if isinstance(
+        rfr_annualized, pd.Series) else rfr_annualized
+    if annualize:
+        return (compound_return(timeseries, annualize=True) - rate) / volatility(timeseries, annualize=True)
+    else:
+        return (arithmetic_mean(timeseries) - ((1 + rate) ** (1/periodicity(timeseries)) - 1)) / volatility(timeseries, annualize=False)
 
 
 def reward_to_risk(timeseries: pd.Series | pd.DataFrame) -> float | pd.Series:
