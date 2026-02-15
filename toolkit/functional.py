@@ -202,6 +202,7 @@ def compound_return(
     timeseries: pd.Series | pd.DataFrame, annualize=False
 ) -> float | pd.Series:
     """Compound return of time series
+    Only annualize when period is longer than a year.
 
     Parameters
     ----------
@@ -217,7 +218,7 @@ def compound_return(
     """
     r = np.exp(np.log1p(timeseries).sum(min_count=1))
     if annualize:
-        r **= periodicity(timeseries) / len(timeseries)
+        r **= min(1, periodicity(timeseries) / len(timeseries))
     return r - 1
 
 
