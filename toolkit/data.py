@@ -21,6 +21,7 @@ import pandas as pd
 import yfinance as yf
 from bs4 import BeautifulSoup
 from curl_cffi import requests as cffi
+from playwright.sync_api import sync_playwright
 
 
 def _default_date(func):
@@ -521,11 +522,16 @@ def get_spglobal_bulk(codes: list = [5457755]) -> pd.DataFrame:
         Index is DatetimeIndex (freq='B')
     """
     url = f"https://www.spglobal.com/spdji/en/util/redesign/get-index-comparison-data.dot?compareArray={'&compareArray='.join([str(i) for i in codes])}&periodFlag=tenYearFlag&language_id=1"
-    headers = {
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
-        "x-requested-with": "XMLHttpRequest"
-    }
-    json = requests.get(url, headers=headers).json()
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=False)
+        context = browser.new_context()
+        page = context.new_page()
+        response = page.goto(url)
+        json = response.json()
+        context.close()
+        browser.close()
+
     names = {str(i["indexId"]): i["indexName"]
              for i in json["performanceComparisonHolder"]["indexPerformanceForComparison"]}
     values = json["levelComparisonHolder"]["indexLevelForComparison"]
